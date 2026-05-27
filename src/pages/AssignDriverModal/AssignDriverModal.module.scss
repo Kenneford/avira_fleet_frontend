@@ -1,0 +1,47 @@
+@use "../../styles/variables" as *;
+
+.paper {
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.currentBanner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  min-height: 64px;
+}
+
+.listContainer {
+  overflow-y: auto;
+  max-height: 380px;
+  min-height: 160px;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+}
+
+.driverItem {
+  transition: background 0.15s;
+
+  &.selected {
+    background: rgba(200, 168, 75, 0.08) !important;
+    border-left: 2px solid $gold;
+  }
+
+  &.current {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
