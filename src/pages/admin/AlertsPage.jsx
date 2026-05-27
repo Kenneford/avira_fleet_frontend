@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -184,7 +185,8 @@ export default function AlertsPage() {
             <CircularProgress />
           </Box>
         ) : (
-          <Table>
+          <TableContainer>
+          <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Severity</TableCell>
@@ -268,6 +270,7 @@ export default function AlertsPage() {
               )}
             </TableBody>
           </Table>
+          </TableContainer>
         )}
       </Card>
     </Box>

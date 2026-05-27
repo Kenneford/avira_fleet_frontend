@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -324,7 +325,8 @@ export default function AdminDashboard() {
             <CircularProgress size={28} />
           </Box>
         ) : (
-          <Table size="small">
+          <TableContainer>
+          <Table size="small" sx={{ minWidth: 580 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Registration</TableCell>
@@ -391,6 +393,7 @@ export default function AdminDashboard() {
               })}
             </TableBody>
           </Table>
+          </TableContainer>
         )}
       </Card>
     </Box>
