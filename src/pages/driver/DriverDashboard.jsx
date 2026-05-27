@@ -8,6 +8,7 @@ import {
   Chip,
   Avatar,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -285,7 +286,8 @@ export default function DriverDashboard() {
           </Typography>
         </Box>
         <Divider />
-        <Table>
+        <TableContainer>
+        <Table sx={{ minWidth: 550 }}>
           <TableHead>
             <TableRow>
               <TableCell>Date</TableCell>
@@ -347,6 +349,7 @@ export default function DriverDashboard() {
             )}
           </TableBody>
         </Table>
+        </TableContainer>
       </Card>
     </Box>
   );

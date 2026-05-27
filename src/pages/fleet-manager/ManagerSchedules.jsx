@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -298,7 +299,8 @@ export default function ManagerSchedules() {
             <CircularProgress size={32} />
           </Box>
         ) : (
-          <Table>
+          <TableContainer>
+          <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Date</TableCell>
@@ -423,6 +425,7 @@ export default function ManagerSchedules() {
               )}
             </TableBody>
           </Table>
+          </TableContainer>
         )}
       </Card>
 

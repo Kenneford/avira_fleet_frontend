@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -177,7 +178,8 @@ export default function DriverList() {
           </Box>
         ) : (
           <>
-            <Table>
+            <TableContainer>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Driver</TableCell>
@@ -304,6 +306,7 @@ export default function DriverList() {
                 )}
               </TableBody>
             </Table>
+            </TableContainer>
             {total > 15 && (
               <Box display="flex" justifyContent="center" p={2}>
                 <Pagination

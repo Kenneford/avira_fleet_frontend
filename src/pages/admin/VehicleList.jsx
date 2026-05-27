@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -241,7 +242,8 @@ export default function VehicleList() {
           </Box>
         ) : (
           <>
-            <Table>
+            <TableContainer>
+            <Table sx={{ minWidth: 800 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Registration</TableCell>
@@ -382,6 +384,7 @@ export default function VehicleList() {
                 )}
               </TableBody>
             </Table>
+            </TableContainer>
             {total > 15 && (
               <Box display="flex" justifyContent="center" p={2}>
                 <Pagination
