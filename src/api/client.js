@@ -1,7 +1,13 @@
 import axios from 'axios'
 
+// In production builds (import.meta.env.PROD === true), point directly at the
+// Render backend service. In development, Vite's proxy forwards /api → localhost:4000.
+const BASE_URL = import.meta.env.PROD
+  ? 'https://avira-fleet-backend.onrender.com/api'
+  : '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BASE_URL,
   timeout: 15000,
 })
 
@@ -21,7 +27,7 @@ api.interceptors.response.use(
       original._retry = true
       try {
         const refreshToken = localStorage.getItem('refresh_token')
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken })
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken })
         localStorage.setItem('access_token', data.accessToken)
         original.headers.Authorization = `Bearer ${data.accessToken}`
         return api(original)
