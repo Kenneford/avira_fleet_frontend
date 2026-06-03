@@ -1,10 +1,11 @@
 @use '../../styles/variables' as *;
 
+/* Layout only — all colors are handled via MUI sx props in the component */
+
 .drawer {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0A0A0A;
 }
 
 .drawerLogo {
@@ -12,14 +13,13 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1.25rem 1.25rem 0.75rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
   margin-bottom: 0.5rem;
 }
 
 .logoIcon {
-  color: $gold;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
+  font-weight: 900;
 }
 
 .logoText {
@@ -27,7 +27,6 @@
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: $white;
   display: flex;
   flex-direction: column;
   line-height: 1;
@@ -36,7 +35,6 @@
 .logoSub {
   font-size: 0.5rem;
   letter-spacing: 0.22em;
-  color: $gold;
   font-weight: 600;
   margin-top: 3px;
 }
@@ -50,15 +48,12 @@
   font-size: 0.6rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.18em !important;
-  color: $gold !important;
-  background: rgba(200, 168, 75, 0.08);
-  border: 1px solid rgba(200, 168, 75, 0.15);
   padding: 0.2rem 0.6rem;
   border-radius: 100px;
+  display: inline-block;
 }
 
 .drawerFooter {
   padding: 1rem 1.25rem;
-  border-top: 1px solid rgba(255,255,255,0.06);
   margin-top: auto;
 }

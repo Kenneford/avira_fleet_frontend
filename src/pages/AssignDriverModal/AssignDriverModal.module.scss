@@ -36,8 +36,8 @@
   transition: background 0.15s;
 
   &.selected {
-    background: rgba(200, 168, 75, 0.08) !important;
-    border-left: 2px solid $gold;
+    background: rgba(211, 47, 47, 0.08) !important;
+    border-left: 2px solid $red;
   }
 
   &.current {

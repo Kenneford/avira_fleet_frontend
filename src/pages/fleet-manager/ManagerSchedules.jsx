@@ -342,8 +342,8 @@ export default function ManagerSchedules() {
                           sx={{
                             width: 28,
                             height: 28,
-                            bgcolor: "#C8A84B",
-                            color: "#000",
+                            bgcolor: "#D32F2F",
+                            color: "#fff",
                             fontSize: "0.7rem",
                             fontWeight: 800,
                           }}

@@ -23,8 +23,10 @@ import {
   CircularProgress,
   Chip,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -32,8 +34,12 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import BadgeIcon from "@mui/icons-material/Badge";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useAuth } from "../../contexts/AuthContext";
+import { useThemeMode } from "../../contexts/ThemeContext";
 import { dashboardAPI } from "../../api/client";
+import { avatarColor } from "../../utils/helpers";
 import styles from "./DashboardLayout.module.scss";
 
 const SIDEBAR_WIDTH = 260;
@@ -45,17 +51,35 @@ const TYPE_ICONS = {
 
 export default function DashboardLayout({ navItems, children }) {
   const { user, logout } = useAuth();
+  const { mode, toggleMode } = useThemeMode();
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width:960px)");
+  const isDark = mode === "dark";
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null); // avatar menu
-  const [bellAnchor, setBellAnchor] = useState(null); // alerts popover
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [bellAnchor, setBellAnchor] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [alertsLoading, setAlertsLoading] = useState(false);
 
-  // Only admin and fleet_manager can see alerts
+  // Back navigation — hide on root dashboard pages
+  const ROOT_PATHS = ["/admin/dashboard", "/manager/dashboard", "/driver/dashboard", "/dev/dashboard"];
+  const canGoBack = !ROOT_PATHS.includes(location.pathname);
+
+  // Alt+Left keyboard shortcut (standard Windows back)
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.altKey && e.key === "ArrowLeft" && canGoBack) {
+        e.preventDefault();
+        navigate(-1);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [canGoBack, navigate]);
+
   const canSeeAlerts = user?.role === "admin" || user?.role === "fleet_manager";
 
   const fetchAlerts = useCallback(() => {
@@ -68,14 +92,12 @@ export default function DashboardLayout({ navItems, children }) {
       .finally(() => setAlertsLoading(false));
   }, [canSeeAlerts]);
 
-  // Fetch on mount and every 5 minutes
   useEffect(() => {
     fetchAlerts();
     const interval = setInterval(fetchAlerts, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchAlerts]);
 
-  // Re-fetch when popover opens so it's always fresh
   const handleBellOpen = (e) => {
     setBellAnchor(e.currentTarget);
     fetchAlerts();
@@ -89,7 +111,7 @@ export default function DashboardLayout({ navItems, children }) {
   const criticalCount = alerts.filter((a) => a.severity === "critical").length;
   const totalCount = alerts.length;
 
-  // Alert row inside the popover
+  // ── Alert row inside popover ──────────────────────────────────────────────
   const AlertRow = ({ a }) => (
     <Box
       sx={{
@@ -98,11 +120,11 @@ export default function DashboardLayout({ navItems, children }) {
         gap: 1.25,
         px: 2,
         py: 1.25,
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        borderBottom: `1px solid ${theme.palette.divider}`,
         background:
           a.severity === "critical"
-            ? "rgba(244,67,54,0.05)"
-            : "rgba(255,152,0,0.04)",
+            ? "rgba(211,47,47,0.05)"
+            : "rgba(245,124,0,0.04)",
         "&:last-child": { borderBottom: "none" },
       }}
     >
@@ -153,38 +175,62 @@ export default function DashboardLayout({ navItems, children }) {
     </Box>
   );
 
+  // ── Drawer content ────────────────────────────────────────────────────────
   const drawer = (
-    <Box className={styles.drawer}>
-      <Box className={styles.drawerLogo}>
-        <span className={styles.logoIcon}>▲</span>
-        <Box className={styles.logoText}>
+    <Box className={styles.drawer} sx={{ bgcolor: "background.paper" }}>
+      {/* Logo */}
+      <Box
+        className={styles.drawerLogo}
+        sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
+      >
+        <Box
+          component="span"
+          className={styles.logoIcon}
+          sx={{ color: "primary.main" }}
+        >
+          ▲
+        </Box>
+        <Box className={styles.logoText} sx={{ color: "text.primary" }}>
           AVIRA
-          <span className={styles.logoSub}>FLEET</span>
+          <Box
+            component="span"
+            className={styles.logoSub}
+            sx={{ color: "primary.main" }}
+          >
+            FLEET
+          </Box>
         </Box>
         {isMobile && (
           <IconButton
             onClick={() => setMobileOpen(false)}
             size="small"
-            sx={{ ml: "auto", color: "#666" }}
+            sx={{ ml: "auto", color: "text.secondary" }}
           >
             <ChevronLeftIcon />
           </IconButton>
         )}
       </Box>
 
+      {/* Role badge */}
       <Box className={styles.roleTag}>
-        <Typography variant="caption" className={styles.roleBadge}>
+        <Box
+          component="span"
+          className={styles.roleBadge}
+          sx={{
+            color: "primary.main",
+            bgcolor: (t) => `${t.palette.primary.main}18`,
+            border: (t) => `1px solid ${t.palette.primary.main}33`,
+          }}
+        >
           {user?.role?.replace("_", " ").toUpperCase()}
-        </Typography>
+        </Box>
       </Box>
 
+      {/* Nav items */}
       <List sx={{ px: 1, pt: 0.5, flex: 1 }}>
         {navItems.map(({ label, icon, to, divider }) =>
           divider ? (
-            <Divider
-              key={label}
-              sx={{ my: 1, borderColor: "rgba(255,255,255,0.06)" }}
-            />
+            <Divider key={label} sx={{ my: 1 }} />
           ) : (
             <ListItem key={to} disablePadding>
               <ListItemButton
@@ -211,14 +257,18 @@ export default function DashboardLayout({ navItems, children }) {
         )}
       </List>
 
-      <Box className={styles.drawerFooter}>
+      {/* Footer user info */}
+      <Box
+        className={styles.drawerFooter}
+        sx={{ borderTop: `1px solid ${theme.palette.divider}` }}
+      >
         <Box display="flex" alignItems="center" gap={1.5}>
           <Avatar
             sx={{
               width: 32,
               height: 32,
-              bgcolor: "#C8A84B",
-              color: "#000",
+              bgcolor: avatarColor(user?.name),
+              color: "#fff",
               fontSize: "0.8rem",
               fontWeight: 800,
             }}
@@ -226,7 +276,12 @@ export default function DashboardLayout({ navItems, children }) {
             {user?.name?.charAt(0)}
           </Avatar>
           <Box overflow="hidden">
-            <Typography variant="body2" fontWeight={600} noWrap>
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              noWrap
+              sx={{ color: "text.primary" }}
+            >
               {user?.name}
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap>
@@ -239,7 +294,14 @@ export default function DashboardLayout({ navItems, children }) {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", background: "#0F0F0F" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
+      {/* ── Sidebar ── */}
       <Drawer
         variant={isMobile ? "temporary" : "permanent"}
         open={isMobile ? mobileOpen : true}
@@ -257,58 +319,102 @@ export default function DashboardLayout({ navItems, children }) {
         {drawer}
       </Drawer>
 
+      {/* ── Main area ── */}
       <Box
         sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}
       >
+        {/* AppBar */}
         <AppBar position="sticky" sx={{ zIndex: 100 }}>
-          <Toolbar sx={{ gap: 1 }}>
+          <Toolbar sx={{ gap: 0.5 }}>
             {isMobile && (
               <IconButton
                 onClick={() => setMobileOpen(true)}
                 size="small"
-                sx={{ color: "white" }}
+                sx={{ color: "text.primary" }}
               >
                 <MenuIcon />
               </IconButton>
             )}
+
+            {/* Back button — desktop app navigation */}
+            {canGoBack && (
+              <Tooltip title="Go back  (Alt+←)">
+                <IconButton
+                  size="small"
+                  onClick={() => navigate(-1)}
+                  sx={{ color: isDark ? "grey" : "#292929" }}
+                >
+                  <ArrowBackIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+
             <Box sx={{ flex: 1 }} />
 
-            {/* ── Notification bell ── */}
+            {/* Theme toggle */}
+            <Tooltip
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              <IconButton
+                size="small"
+                onClick={toggleMode}
+                sx={{ color: isDark ? "grey" : "#292929" }}
+              >
+                {isDark ? (
+                  <LightModeIcon fontSize="small" />
+                ) : (
+                  <DarkModeIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+
+            {/* Notification bell */}
             {canSeeAlerts && (
               <Tooltip title="Expiry alerts">
                 <IconButton
                   size="small"
                   onClick={handleBellOpen}
                   sx={{
-                    color:
-                      criticalCount > 0
-                        ? "error.main"
-                        : totalCount > 0
-                          ? "warning.main"
-                          : "#666",
+                    color: isDark ? "grey" : "#292929",
+                    // color:
+                    //   criticalCount > 0
+                    //     ? "error.main"
+                    //     : totalCount > 0
+                    //       ? "warning.main"
+                    //       : "text.secondary",
                     transition: "color 0.2s",
                   }}
                 >
                   <Badge
                     badgeContent={totalCount || null}
-                    color={criticalCount > 0 ? "error" : "warning"}
+                    // color={isDark ? "grey" : "#292929"}
+                    // color={criticalCount > 0 ? "error" : "warning"}
                     max={99}
+                    // sx={{ color: isDark ? "grey" : "#292929" }}
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        backgroundColor: isDark ? "#666" : "#292929",
+                        color: "#fff",
+                      },
+                    }}
                   >
-                    <NotificationsIcon />
+                    <NotificationsIcon color="#292929" />
                   </Badge>
                 </IconButton>
               </Tooltip>
             )}
 
+            {/* Avatar */}
             <Avatar
               sx={{
                 width: 32,
                 height: 32,
-                bgcolor: "#C8A84B",
-                color: "#000",
+                bgcolor: avatarColor(user?.name),
+                color: "#fff",
                 fontSize: "0.8rem",
                 fontWeight: 800,
                 cursor: "pointer",
+                ml: 0.5,
               }}
               onClick={(e) => setAnchorEl(e.currentTarget)}
             >
@@ -317,7 +423,7 @@ export default function DashboardLayout({ navItems, children }) {
           </Toolbar>
         </AppBar>
 
-        {/* ── Alerts popover ── */}
+        {/* Alerts popover */}
         <Popover
           open={Boolean(bellAnchor)}
           anchorEl={bellAnchor}
@@ -330,8 +436,6 @@ export default function DashboardLayout({ navItems, children }) {
               maxHeight: 480,
               display: "flex",
               flexDirection: "column",
-              background: "#1A1A1A",
-              border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 2,
               mt: 0.5,
             },
@@ -342,7 +446,7 @@ export default function DashboardLayout({ navItems, children }) {
             sx={{
               px: 2,
               py: 1.5,
-              borderBottom: "1px solid rgba(255,255,255,0.07)",
+              borderBottom: `1px solid ${theme.palette.divider}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -356,7 +460,12 @@ export default function DashboardLayout({ navItems, children }) {
               {totalCount > 0 && (
                 <Typography variant="caption" color="text.secondary">
                   {criticalCount > 0 && (
-                    <span style={{ color: "#F44336", fontWeight: 600 }}>
+                    <span
+                      style={{
+                        color: theme.palette.error.main,
+                        fontWeight: 600,
+                      }}
+                    >
                       {criticalCount} critical
                     </span>
                   )}
@@ -411,7 +520,7 @@ export default function DashboardLayout({ navItems, children }) {
               sx={{
                 px: 2,
                 py: 1.25,
-                borderTop: "1px solid rgba(255,255,255,0.07)",
+                borderTop: `1px solid ${theme.palette.divider}`,
                 flexShrink: 0,
               }}
             >
@@ -427,12 +536,12 @@ export default function DashboardLayout({ navItems, children }) {
                   gap: 0.5,
                   fontSize: "0.8rem",
                   fontWeight: 700,
-                  color: "#C8A84B",
+                  color: "primary.main",
                   textDecoration: "none",
                   fontFamily: "'Syne', sans-serif",
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  "&:hover": { color: "#E5C76A" },
+                  "&:hover": { color: "primary.dark" },
                 }}
               >
                 View all alerts
@@ -467,6 +576,7 @@ export default function DashboardLayout({ navItems, children }) {
           </MenuItem>
         </Menu>
 
+        {/* Page content */}
         <Box
           component="main"
           sx={{ flex: 1, p: { xs: 2, md: 3 }, overflow: "auto" }}

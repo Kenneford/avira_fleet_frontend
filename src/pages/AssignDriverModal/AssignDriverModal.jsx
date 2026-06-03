@@ -165,8 +165,8 @@ export default function AssignDriverModal({
                   sx={{
                     width: 22,
                     height: 22,
-                    bgcolor: "#C8A84B",
-                    color: "#000",
+                    bgcolor: "#D32F2F",
+                    color: "#fff",
                     fontSize: "0.65rem",
                     fontWeight: 800,
                   }}
@@ -299,12 +299,12 @@ export default function AssignDriverModal({
                           sx={{
                             width: 38,
                             height: 38,
-                            bgcolor: isSelected ? "#C8A84B" : "#2A2A2A",
-                            color: isSelected ? "#000" : "#888",
+                            bgcolor: isSelected ? "#D32F2F" : "#2A2A2A",
+                            color: isSelected ? "#fff" : "#888",
                             fontWeight: 800,
                             fontSize: "0.85rem",
                             border: isSelected
-                              ? "2px solid #C8A84B"
+                              ? "2px solid #D32F2F"
                               : "2px solid transparent",
                             transition: "all 0.15s",
                           }}

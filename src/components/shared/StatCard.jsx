@@ -1,7 +1,7 @@
 import { Box, Card, CardContent, Typography, Skeleton } from '@mui/material'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 
-export default function StatCard({ label, value, icon, color = '#C8A84B', loading, sub }) {
+export default function StatCard({ label, value, icon, color = '#D32F2F', loading, sub }) {
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 2.5 }}>

@@ -1,4 +1,4 @@
-@use '../../styles/variables' as *;
+@use "../../styles/variables" as *;
 
 .page {
   min-height: 100vh;
@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: $dark;
+  // background controlled via MUI sx so it responds to dark/light mode
   position: relative;
   overflow: hidden;
 }
@@ -28,7 +28,11 @@
   right: -10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(200, 168, 75, 0.06) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(200, 168, 75, 0.06) 0%,
+    transparent 70%
+  );
   pointer-events: none;
 }
 
@@ -43,7 +47,7 @@
 }
 
 .logoIcon {
-  color: $gold;
+  color: $red;
   font-size: 1.5rem;
 }
 
@@ -52,16 +56,26 @@
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: $white;
+  // color: "#292929";
   display: flex;
   flex-direction: column;
   line-height: 1;
 }
+// .logoText {
+//   font-family: $font-display;
+//   font-size: 1.1rem;
+//   font-weight: 800;
+//   letter-spacing: 0.12em;
+//   color: $white;
+//   display: flex;
+//   flex-direction: column;
+//   line-height: 1;
+// }
 
 .logoSub {
   font-size: 0.5rem;
   letter-spacing: 0.22em;
-  color: $gold;
+  color: $red-light;
   font-weight: 600;
   margin-top: 3px;
 }
@@ -78,7 +92,7 @@
 .demoHint {
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .demoRow {

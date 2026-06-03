@@ -40,7 +40,6 @@ import {
   statusConfig,
   formatDate,
   vehicleTypeLabel,
-  errorMessage,
 } from "../../utils/helpers";
 
 const VEHICLE_STATUS_COLORS = {
@@ -67,11 +66,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(null);
-  const [alerts, setAlerts] = useState([]);
+  const [stats, setStats]       = useState(null);
+  const [alerts, setAlerts]     = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -90,7 +89,7 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalAlerts = alerts.length;
+  const totalAlerts    = alerts.length;
   const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
 
   return (
@@ -130,7 +129,7 @@ export default function AdminDashboard() {
             label="Total Vehicles"
             value={stats?.vehicles?.total}
             icon={<DirectionsBusIcon fontSize="inherit" />}
-            color="#C8A84B"
+            color="#D32F2F"
             loading={loading}
             sub={`${stats?.vehicles?.available ?? "—"} available`}
           />
@@ -152,9 +151,7 @@ export default function AdminDashboard() {
             icon={<WarningAmberIcon fontSize="inherit" />}
             color={criticalAlerts > 0 ? "#F44336" : "#FF9800"}
             loading={loading}
-            sub={
-              criticalAlerts > 0 ? `${criticalAlerts} critical` : "All reviewed"
-            }
+            sub={criticalAlerts > 0 ? `${criticalAlerts} critical` : "All reviewed"}
           />
         </Grid>
         <Grid item xs={6} sm={3}>
@@ -180,7 +177,7 @@ export default function AdminDashboard() {
                   <Typography variant="body2" fontWeight={700} fontSize="0.85rem">
                     Fleet Utilisation
                   </Typography>
-                  <Typography variant="h6" fontWeight={800} color="#C8A84B">
+                  <Typography variant="h6" fontWeight={800} color="#D32F2F">
                     {analytics.utilRate}%
                   </Typography>
                 </Box>
@@ -249,7 +246,7 @@ export default function AdminDashboard() {
                     />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#777" }} axisLine={false} tickLine={false} />
                     <ReTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                    <Bar dataKey="total" name="Total" fill="#C8A84B" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="total"     name="Total"     fill="#D32F2F" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="completed" name="Completed" fill="#4CAF50" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -269,7 +266,7 @@ export default function AdminDashboard() {
                   const color =
                     b.label === "Overdue"   ? "#F44336" :
                     b.label === "0–7 days"  ? "#FF5722" :
-                    b.label === "8–30 days" ? "#FF9800" : "#C8A84B";
+                    b.label === "8–30 days" ? "#FF9800" : "#D32F2F";
                   return (
                     <Box key={b.label} mb={1}>
                       <Box display="flex" justifyContent="space-between" mb={0.3}>
@@ -281,7 +278,7 @@ export default function AdminDashboard() {
                 })}
                 <Button
                   component={Link}
-                  to={window.location.pathname.startsWith("/admin") ? "/admin/analytics" : "/manager/analytics"}
+                  to="/admin/analytics"
                   variant="outlined"
                   color="primary"
                   size="small"
@@ -326,73 +323,69 @@ export default function AdminDashboard() {
           </Box>
         ) : (
           <TableContainer>
-          <Table size="small" sx={{ minWidth: 580 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Registration</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Driver</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Insurance Expiry</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {vehicles.map((v) => {
-                const st = statusConfig.vehicle[v.status] || {};
-                return (
-                  <TableRow key={v.id} hover>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        color="primary.main"
-                      >
-                        {v.registrationNumber}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {v.make} {v.model}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption">
-                        {vehicleTypeLabel[v.vehicleType] || v.vehicleType}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {v.currentDriver?.name || "—"}
-                        <br />
-                        {v.currentDriver?.phone || ""}
-                        <br />
-                        {v.currentDriver?.email || ""}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={st.label}
-                        color={st.color || "default"}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        color={
-                          v.insurance_days_left < 0
-                            ? "error.main"
-                            : v.insurance_days_left <= 30
-                              ? "warning.main"
-                              : "text.primary"
-                        }
-                      >
-                        {formatDate(v.insuranceExpiry)}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+            <Table size="small" sx={{ minWidth: 580 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Registration</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Driver</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Insurance Expiry</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {vehicles.map((v) => {
+                  const st = statusConfig.vehicle[v.status] || {};
+                  return (
+                    <TableRow key={v.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={700} color="primary.main">
+                          {v.registrationNumber}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {v.make} {v.model}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption">
+                          {vehicleTypeLabel[v.vehicleType] || v.vehicleType}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {v.currentDriver?.name || "—"}
+                          <br />
+                          {v.currentDriver?.phone || ""}
+                          <br />
+                          {v.currentDriver?.email || ""}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={st.label}
+                          color={st.color || "default"}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          color={
+                            v.insurance_days_left < 0
+                              ? "error.main"
+                              : v.insurance_days_left <= 30
+                                ? "warning.main"
+                                : "text.primary"
+                          }
+                        >
+                          {formatDate(v.insuranceExpiry)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </TableContainer>
         )}
       </Card>
