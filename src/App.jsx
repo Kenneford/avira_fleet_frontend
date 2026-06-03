@@ -16,6 +16,8 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import GroupIcon from "@mui/icons-material/Group";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import CampaignIcon from "@mui/icons-material/Campaign";
 
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -31,6 +33,8 @@ import DriverList from "./pages/admin/DriverList";
 import DriverForm from "./pages/admin/DriverForm";
 import AlertsPage from "./pages/admin/AlertsPage";
 import TeamPage from "./pages/admin/TeamPage";
+import ApplicationsPage from "./pages/admin/ApplicationsPage";
+import MessagingPage from "./pages/admin/MessagingPage";
 import RevenuePage from "./pages/admin/RevenuePage";
 import PromotionsPage from "./pages/admin/PromotionsPage";
 import GalleryPage from "./pages/admin/GalleryPage";
@@ -60,7 +64,9 @@ const ADMIN_NAV = [
   { label: "Promotions",icon: <LocalOfferIcon />,      to: "/admin/promotions" },
   { label: "Gallery",   icon: <PhotoLibraryIcon />,    to: "/admin/gallery"    },
   { label: "divider-team", divider: true },
-  { label: "Team",      icon: <GroupIcon />,           to: "/admin/team"       },
+  { label: "Team",        icon: <GroupIcon />,          to: "/admin/team"         },
+  { label: "Applications",icon: <AssignmentIndIcon />,  to: "/admin/applications" },
+  { label: "Messaging",   icon: <CampaignIcon />,       to: "/admin/messaging"    },
 ];
 
 const DEV_NAV = [
@@ -74,6 +80,7 @@ const MANAGER_NAV = [
   { label: "Drivers", icon: <PeopleIcon />, to: "/manager/drivers" },
   { label: "Schedules", icon: <CalendarMonthIcon />, to: "/manager/schedules" },
   { label: "Alerts", icon: <WarningAmberIcon />, to: "/manager/alerts" },
+  { label: "Messaging", icon: <CampaignIcon />, to: "/manager/messaging" },
 ];
 
 const DRIVER_NAV = [
@@ -268,6 +275,26 @@ export default function App() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/admin/applications"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <ApplicationsPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/messaging"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <MessagingPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
 
       {/* Fleet Manager */}
       <Route
@@ -366,6 +393,16 @@ export default function App() {
           <RequireAuth roles={["fleet_manager"]}>
             <ManagerLayout>
               <AnalyticsPage />
+            </ManagerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/manager/messaging"
+        element={
+          <RequireAuth roles={["fleet_manager"]}>
+            <ManagerLayout>
+              <MessagingPage />
             </ManagerLayout>
           </RequireAuth>
         }
