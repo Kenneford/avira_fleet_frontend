@@ -98,8 +98,8 @@ export default function DriverDashboard() {
           sx={{
             width: 48,
             height: 48,
-            bgcolor: "#C8A84B",
-            color: "#000",
+            bgcolor: "#D32F2F",
+            color: "#fff",
             fontWeight: 800,
             fontSize: "1.2rem",
           }}
@@ -133,7 +133,7 @@ export default function DriverDashboard() {
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
-                <DirectionsBusIcon sx={{ color: "#C8A84B" }} />
+                <DirectionsBusIcon sx={{ color: "#D32F2F" }} />
                 <Typography variant="h6" fontWeight={700} fontSize="0.95rem">
                   Assigned Vehicle
                 </Typography>
@@ -167,7 +167,7 @@ export default function DriverDashboard() {
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
-                <BadgeIcon sx={{ color: "#C8A84B" }} />
+                <BadgeIcon sx={{ color: "#D32F2F" }} />
                 <Typography variant="h6" fontWeight={700} fontSize="0.95rem">
                   My License
                 </Typography>
@@ -221,7 +221,7 @@ export default function DriverDashboard() {
             <Card>
               <CardContent sx={{ p: 2.5 }}>
                 <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
-                  <TrendingUpIcon sx={{ color: "#C8A84B" }} />
+                  <TrendingUpIcon sx={{ color: "#D32F2F" }} />
                   <Typography variant="h6" fontWeight={700} fontSize="0.9rem">
                     My Schedule Overview
                   </Typography>
@@ -240,9 +240,9 @@ export default function DriverDashboard() {
                       </Box>
                     );
                   })}
-                  <Box sx={{ px: 2, py: 1, borderRadius: 2, bgcolor: "rgba(200,168,75,0.1)", border: "1px solid rgba(200,168,75,0.25)" }}>
+                  <Box sx={{ px: 2, py: 1, borderRadius: 2, bgcolor: "rgba(211,47,47,0.08)", border: "1px solid rgba(211,47,47,0.25)" }}>
                     <Typography variant="caption" color="text.secondary" display="block">Total</Typography>
-                    <Typography variant="h6" fontWeight={800} color="#C8A84B" lineHeight={1.2}>{schedules.length}</Typography>
+                    <Typography variant="h6" fontWeight={800} color="#D32F2F" lineHeight={1.2}>{schedules.length}</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -280,7 +280,7 @@ export default function DriverDashboard() {
           pt={2.5}
           pb={1.5}
         >
-          <CalendarMonthIcon sx={{ color: "#C8A84B" }} />
+          <CalendarMonthIcon sx={{ color: "#D32F2F" }} />
           <Typography variant="h6" fontWeight={700} fontSize="0.95rem">
             Upcoming Schedule
           </Typography>

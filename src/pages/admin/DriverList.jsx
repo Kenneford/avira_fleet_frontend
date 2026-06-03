@@ -208,8 +208,8 @@ export default function DriverList() {
                             sx={{
                               width: 32,
                               height: 32,
-                              bgcolor: "#C8A84B",
-                              color: "#000",
+                              bgcolor: "#D32F2F",
+                              color: "#fff",
                               fontSize: "0.8rem",
                               fontWeight: 800,
                             }}

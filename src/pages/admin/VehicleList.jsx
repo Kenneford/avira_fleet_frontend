@@ -180,11 +180,11 @@ export default function VehicleList() {
                 </Box>
               );
             })}
-          <Box sx={{ px: 2, py: 1, borderRadius: 2, bgcolor: "rgba(200,168,75,0.08)", border: "1px solid rgba(200,168,75,0.25)", ml: "auto" }}>
+          <Box sx={{ px: 2, py: 1, borderRadius: 2, bgcolor: "rgba(211,47,47,0.08)", border: "1px solid rgba(211,47,47,0.25)", ml: "auto" }}>
             <Typography variant="caption" color="text.secondary" display="block">
               Seat Utilisation
             </Typography>
-            <Typography variant="h6" fontWeight={800} color="#C8A84B" lineHeight={1.2}>
+            <Typography variant="h6" fontWeight={800} color="#D32F2F" lineHeight={1.2}>
               {fleetSummary.capacity.totalCapacity > 0
                 ? `${Math.round((fleetSummary.capacity.assignedCapacity / fleetSummary.capacity.totalCapacity) * 100)}%`
                 : "—"}

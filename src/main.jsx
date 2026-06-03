@@ -1,22 +1,23 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import { ThemeProvider } from '@mui/material/styles'
-import CssBaseline from '@mui/material/CssBaseline'
+import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import theme from './theme/fleetTheme'
+import { FleetThemeProvider } from './contexts/ThemeContext'
 import App from './App.jsx'
 import './styles/globals.scss'
 
+// HashRouter is used instead of BrowserRouter so the app works both as a
+// desktop app (Electron file:// protocol) and as a web deployment.
+// URLs will contain a # (e.g. /#/admin/dashboard) which is fine for an
+// internal fleet tool.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+    <HashRouter>
+      <FleetThemeProvider>
         <AuthProvider>
           <App />
         </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+      </FleetThemeProvider>
+    </HashRouter>
   </React.StrictMode>,
 )

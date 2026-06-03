@@ -37,7 +37,7 @@ function ScheduleCard({ s }) {
 
   const borderColor =
     cat === "today"
-      ? "#C8A84B"
+      ? "#D32F2F"
       : cat === "upcoming"
         ? "rgba(255,255,255,0.08)"
         : "rgba(255,255,255,0.04)";
@@ -67,9 +67,9 @@ function ScheduleCard({ s }) {
                 textAlign: "center",
                 background:
                   cat === "today"
-                    ? "rgba(200,168,75,0.12)"
+                    ? "rgba(211,47,47,0.10)"
                     : "rgba(255,255,255,0.04)",
-                border: `1px solid ${cat === "today" ? "rgba(200,168,75,0.3)" : "rgba(255,255,255,0.06)"}`,
+                border: `1px solid ${cat === "today" ? "rgba(211,47,47,0.3)" : "rgba(255,255,255,0.06)"}`,
                 borderRadius: 1.5,
                 px: 1,
                 py: 0.75,
@@ -275,7 +275,7 @@ export default function DriverSchedule() {
       {/* Summary cards */}
       <Box display="flex" gap={2} mb={4} flexWrap="wrap">
         {[
-          { label: "Today", value: todayItems.length, color: "#C8A84B" },
+          { label: "Today", value: todayItems.length, color: "#D32F2F" },
           { label: "Upcoming", value: upcomingItems.length, color: "#2196F3" },
           { label: "Past (14d)", value: pastItems.length, color: "#666" },
         ].map((s) => (

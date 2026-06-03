@@ -67,3 +67,28 @@ export const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).repl
 
 export const errorMessage = (err) =>
   err?.response?.data?.message || err?.message || 'Something went wrong'
+
+// Deterministic avatar background color based on a name/string.
+// Same input always returns the same color; white text readable on all values.
+const AVATAR_PALETTE = [
+  '#1565C0', // blue 800
+  '#6A1B9A', // purple 800
+  '#2E7D32', // green 800
+  '#E65100', // orange 900
+  '#AD1457', // pink 800
+  '#00695C', // teal 800
+  '#4527A0', // deep purple 800
+  '#558B2F', // light green 800
+  '#0277BD', // light blue 800
+  '#6D4C41', // brown 600
+  '#283593', // indigo 800
+  '#00838F', // cyan 800
+]
+
+export const avatarColor = (name = '') => {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length]
+}

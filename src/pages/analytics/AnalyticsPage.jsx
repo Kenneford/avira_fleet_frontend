@@ -63,7 +63,7 @@ const DRIVER_STATUS_LABELS = {
   suspended: "Suspended",
   inactive:  "Inactive",
 };
-const PALETTE = ["#C8A84B", "#2196F3", "#4CAF50", "#FF9800", "#F44336", "#9C27B0", "#00BCD4", "#795548"];
+const PALETTE = ["#D32F2F", "#2196F3", "#4CAF50", "#FF9800", "#F44336", "#9C27B0", "#00BCD4", "#795548"];
 
 // ─── KPI card ─────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon, color, progress }) {
@@ -286,7 +286,7 @@ export default function AnalyticsPage() {
       {/* ── Capacity Utilization banner ──────────────────────────────── */}
       <Card sx={{ mb: 3.5, p: 2.5 }}>
         <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
-          <EventSeatIcon sx={{ color: "#C8A84B" }} />
+          <EventSeatIcon sx={{ color: "#D32F2F" }} />
           <Typography fontWeight={700} fontSize="0.9rem">
             Seat Capacity Utilisation
           </Typography>
@@ -294,7 +294,7 @@ export default function AnalyticsPage() {
             {capacity.assignedCapacity.toLocaleString()} /{" "}
             {capacity.totalCapacity.toLocaleString()} seats assigned
           </Typography>
-          <Typography fontWeight={800} color="#C8A84B">
+          <Typography fontWeight={800} color="#D32F2F">
             {capPercent}%
           </Typography>
         </Box>
@@ -306,7 +306,7 @@ export default function AnalyticsPage() {
             borderRadius: 5,
             bgcolor: "rgba(255,255,255,0.07)",
             "& .MuiLinearProgress-bar": {
-              bgcolor: capPercent > 80 ? "#4CAF50" : capPercent > 50 ? "#C8A84B" : "#F44336",
+              bgcolor: capPercent > 80 ? "#4CAF50" : capPercent > 50 ? "#D32F2F" : "#F44336",
               borderRadius: 5,
             },
           }}
@@ -532,7 +532,7 @@ export default function AnalyticsPage() {
                 )}
               />
               <Bar dataKey="vehicles" name="Vehicle Docs" fill="#2196F3" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="drivers"  name="Driver Licenses" fill="#C8A84B" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="drivers"  name="Driver Licenses" fill="#D32F2F" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -571,9 +571,9 @@ export default function AnalyticsPage() {
                 type="monotone"
                 dataKey="total"
                 name="Total"
-                stroke="#C8A84B"
+                stroke="#D32F2F"
                 strokeWidth={2}
-                dot={{ r: 3, fill: "#C8A84B" }}
+                dot={{ r: 3, fill: "#D32F2F" }}
                 activeDot={{ r: 5 }}
               />
               <Line

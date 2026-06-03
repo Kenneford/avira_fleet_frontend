@@ -11,6 +11,11 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import HomeIcon from "@mui/icons-material/Home";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import BugReportIcon from "@mui/icons-material/BugReport";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import GroupIcon from "@mui/icons-material/Group";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -25,6 +30,10 @@ import VehicleForm from "./pages/admin/VehicleForm";
 import DriverList from "./pages/admin/DriverList";
 import DriverForm from "./pages/admin/DriverForm";
 import AlertsPage from "./pages/admin/AlertsPage";
+import TeamPage from "./pages/admin/TeamPage";
+import RevenuePage from "./pages/admin/RevenuePage";
+import PromotionsPage from "./pages/admin/PromotionsPage";
+import GalleryPage from "./pages/admin/GalleryPage";
 
 // Analytics
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
@@ -37,15 +46,25 @@ import ManagerSchedules from "./pages/fleet-manager/ManagerSchedules";
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverSchedule from "./pages/driver/DriverSchedule";
 
+// Dev pages
+import DevDashboard from "./pages/dev/DevDashboard";
+
 // ── Nav configs ──────────────────────────────────────────────────────
 const ADMIN_NAV = [
-  { label: "Dashboard", icon: <DashboardIcon />, to: "/admin/dashboard" },
-  { label: "Analytics", icon: <BarChartIcon />, to: "/admin/analytics" },
-  { label: "Vehicles", icon: <DirectionsBusIcon />, to: "/admin/vehicles" },
-  { label: "Drivers", icon: <PeopleIcon />, to: "/admin/drivers" },
-  { label: "Alerts", icon: <WarningAmberIcon />, to: "/admin/alerts" },
-  { divider: true, label: "sep1" },
-  { label: "Users", icon: <ManageAccountsIcon />, to: "/admin/users" },
+  { label: "Dashboard", icon: <DashboardIcon />,      to: "/admin/dashboard"  },
+  { label: "Analytics", icon: <BarChartIcon />,        to: "/admin/analytics"  },
+  { label: "Vehicles",  icon: <DirectionsBusIcon />,   to: "/admin/vehicles"   },
+  { label: "Drivers",   icon: <PeopleIcon />,          to: "/admin/drivers"    },
+  { label: "Alerts",    icon: <WarningAmberIcon />,    to: "/admin/alerts"     },
+  { label: "Revenue",   icon: <AttachMoneyIcon />,     to: "/admin/revenue"    },
+  { label: "Promotions",icon: <LocalOfferIcon />,      to: "/admin/promotions" },
+  { label: "Gallery",   icon: <PhotoLibraryIcon />,    to: "/admin/gallery"    },
+  { label: "divider-team", divider: true },
+  { label: "Team",      icon: <GroupIcon />,           to: "/admin/team"       },
+];
+
+const DEV_NAV = [
+  { label: "Dev Dashboard", icon: <BugReportIcon />, to: "/dev/dashboard" },
 ];
 
 const MANAGER_NAV = [
@@ -95,6 +114,9 @@ const ManagerLayout = ({ children }) => (
 );
 const DriverLayout = ({ children }) => (
   <DashboardLayout navItems={DRIVER_NAV}>{children}</DashboardLayout>
+);
+const DevLayout = ({ children }) => (
+  <DashboardLayout navItems={DEV_NAV}>{children}</DashboardLayout>
 );
 
 // ── App ──────────────────────────────────────────────────────────────
@@ -202,6 +224,46 @@ export default function App() {
           <RequireAuth roles={["admin"]}>
             <AdminLayout>
               <AnalyticsPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/revenue"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <RevenuePage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/promotions"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <PromotionsPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/team"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <TeamPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/gallery"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <GalleryPage />
             </AdminLayout>
           </RequireAuth>
         }
@@ -330,6 +392,19 @@ export default function App() {
           </RequireAuth>
         }
       />
+
+      {/* Developer */}
+      <Route
+        path="/dev/dashboard"
+        element={
+          <RequireAuth roles={["developer"]}>
+            <DevLayout>
+              <DevDashboard />
+            </DevLayout>
+          </RequireAuth>
+        }
+      />
+      <Route path="/dev" element={<Navigate to="/dev/dashboard" replace />} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/login" replace />} />

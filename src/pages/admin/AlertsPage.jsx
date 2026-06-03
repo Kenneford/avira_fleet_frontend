@@ -98,7 +98,7 @@ export default function AlertsPage() {
 
       <Box display="flex" gap={2.5} mb={3} flexWrap="wrap">
         {[
-          { label: "Total Alerts", value: alerts.length, color: "#C8A84B" },
+          { label: "Total Alerts", value: alerts.length, color: "#D32F2F" },
           { label: "Critical", value: critical.length, color: "#F44336" },
           { label: "Warnings", value: warnings.length, color: "#FF9800" },
         ].map((s) => (
@@ -155,7 +155,7 @@ export default function AlertsPage() {
                         b.label === "Overdue"   ? "#F44336" :
                         b.label === "0–7 days"  ? "#FF5722" :
                         b.label === "8–30 days" ? "#FF9800" :
-                        b.label === "31–60 d"   ? "#C8A84B" : "#2196F3"
+                        b.label === "31–60 d"   ? "#D32F2F" : "#2196F3"
                       }
                     />
                   ))}
