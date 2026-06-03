@@ -4,8 +4,9 @@ import {
   Table, TableContainer, TableHead, TableBody, TableRow, TableCell,
   Tab, Tabs, Select, MenuItem, FormControl, InputLabel, Alert,
   LinearProgress, Tooltip, IconButton, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, Avatar, Switch,
+  DialogContent, DialogActions, TextField, Avatar, Switch, InputAdornment,
 } from "@mui/material";
+import SearchIcon        from "@mui/icons-material/Search";
 import RefreshIcon       from "@mui/icons-material/Refresh";
 import PlayArrowIcon     from "@mui/icons-material/PlayArrow";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
@@ -21,11 +22,13 @@ import ArticleIcon       from "@mui/icons-material/Article";
 import WorkIcon          from "@mui/icons-material/Work";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import MonitorHeartIcon  from "@mui/icons-material/MonitorHeart";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import { devAPI, dashboardAPI } from "../../api/client";
+import { useAuth } from "../../contexts/AuthContext";
 import { errorMessage, avatarColor } from "../../utils/helpers";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -837,6 +840,10 @@ function DevTeamPanel() {
   const [delDlg,   setDelDlg]   = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Search & filter
+  const [search,       setSearch]       = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const load = useCallback(() => {
     setLoading(true);
     dashboardAPI.users()
@@ -847,6 +854,18 @@ function DevTeamPanel() {
       .catch(e => setError(errorMessage(e)))
       .finally(() => setLoading(false));
   }, []);
+
+  const visibleUsers = users.filter(u => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q
+      || u.name?.toLowerCase().includes(q)
+      || u.email?.toLowerCase().includes(q)
+      || (u.phone || "").toLowerCase().includes(q);
+    const matchesStatus = statusFilter === "all"
+      || (statusFilter === "active" ? u.isActive : !u.isActive);
+    return matchesSearch && matchesStatus;
+  });
+  const filtersActive = search.trim() || statusFilter !== "all";
 
   useEffect(() => { load(); }, [load]);
 
@@ -908,8 +927,38 @@ function DevTeamPanel() {
         <Box px={2} pt={2} pb={1} display="flex" alignItems="center" gap={1}>
           <CodeIcon sx={{ color: "#9C27B0", fontSize: "1.1rem" }} />
           <Typography variant="body2" fontWeight={700}>Developers</Typography>
-          <Chip label={users.length} size="small"
-            sx={{ bgcolor: "#9C27B020", color: "#9C27B0", ml: 0.5 }} />
+          <Chip
+            label={filtersActive ? `${visibleUsers.length} / ${users.length}` : users.length}
+            size="small" sx={{ bgcolor: "#9C27B020", color: "#9C27B0", ml: 0.5 }} />
+        </Box>
+
+        {/* Search & filter toolbar */}
+        <Box px={2} pb={1.5} display="flex" gap={1.5} flexWrap="wrap" alignItems="center">
+          <TextField
+            size="small" placeholder="Search name, email, phone…"
+            value={search} onChange={e => setSearch(e.target.value)}
+            sx={{ flex: 1, minWidth: 200 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Status</InputLabel>
+            <Select label="Status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <MenuItem value="all">All statuses</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+          {filtersActive && (
+            <Button size="small" onClick={() => { setSearch(""); setStatusFilter("all"); }}>
+              Clear
+            </Button>
+          )}
         </Box>
 
         {loading ? (
@@ -927,7 +976,7 @@ function DevTeamPanel() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users.map(u => (
+                {visibleUsers.map(u => (
                   <TableRow key={u._id} hover>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={1.5}>
@@ -965,10 +1014,10 @@ function DevTeamPanel() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!users.length && (
+                {!visibleUsers.length && (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 5, color: "text.secondary" }}>
-                      No developer accounts yet
+                      {filtersActive ? "No developers match your filters" : "No developer accounts yet"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -1032,6 +1081,294 @@ function DevTeamPanel() {
   );
 }
 
+// 9. Users & Roles — every account, with the developer-only role override.
+const ALL_ROLE_CFG = {
+  admin:         { label: "Admin",         color: "#F44336", bg: "#F4433620" },
+  fleet_manager: { label: "Fleet Manager", color: "#2196F3", bg: "#2196F320" },
+  developer:     { label: "Developer",     color: "#9C27B0", bg: "#9C27B020" },
+  driver:        { label: "Driver",        color: "#4CAF50", bg: "#4CAF5020" },
+};
+
+function UsersRolesPanel() {
+  const { user: currentUser } = useAuth();
+  const [users,   setUsers]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
+  const [toast,   setToast]   = useState("");
+
+  const [roleDlg,    setRoleDlg]    = useState(null);
+  const [newRole,    setNewRole]    = useState("");
+  const [roleSaving, setRoleSaving] = useState(false);
+
+  // Add-user dialog (create company admin / fleet manager)
+  const BLANK_ADD = { name: "", email: "", phone: "", role: "admin", password: "" };
+  const [addDlg,    setAddDlg]    = useState(false);
+  const [addForm,   setAddForm]   = useState(BLANK_ADD);
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError,  setAddError]  = useState("");
+
+  // Search & filters
+  const [search,       setSearch]       = useState("");
+  const [roleFilter,   setRoleFilter]   = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    dashboardAPI.users()
+      .then(r => setUsers(r.data?.data || []))
+      .catch(e => setError(errorMessage(e)))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const presentRoles = [...new Set(users.map(u => u.role))];
+  const visibleUsers = users.filter(u => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q
+      || u.name?.toLowerCase().includes(q)
+      || u.email?.toLowerCase().includes(q)
+      || (u.phone || "").toLowerCase().includes(q);
+    const matchesRole   = roleFilter === "all" || u.role === roleFilter;
+    const matchesStatus = statusFilter === "all"
+      || (statusFilter === "active" ? u.isActive : !u.isActive);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+  const filtersActive = search.trim() || roleFilter !== "all" || statusFilter !== "all";
+
+  const handleOverride = async () => {
+    if (!newRole) return;
+    setRoleSaving(true);
+    try {
+      const res = await dashboardAPI.devUpdateUserRole(roleDlg._id, { role: newRole });
+      setRoleDlg(null); setNewRole("");
+      setToast(res?.data?.note || "Role updated.");
+      load();
+    } catch (e) { setError(errorMessage(e)); }
+    finally { setRoleSaving(false); }
+  };
+
+  const handleAdd = async () => {
+    if (!addForm.name || !addForm.email || !addForm.role) {
+      setAddError("Name, email and role are required."); return;
+    }
+    setAddSaving(true); setAddError("");
+    try {
+      const r = await dashboardAPI.createUser(addForm);
+      setAddDlg(false); setAddForm(BLANK_ADD);
+      setToast(r.data.defaultPassword
+        ? `User created. Default password: ${r.data.defaultPassword}`
+        : "User created.");
+      load();
+    } catch (e) { setAddError(errorMessage(e)); }
+    finally { setAddSaving(false); }
+  };
+
+  const joined = (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—";
+
+  return (
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6" fontWeight={700} fontSize="0.95rem">Users & Roles</Typography>
+        <Box display="flex" gap={1}>
+          <Button size="small" variant="contained" color="primary" startIcon={<PersonAddIcon />}
+            onClick={() => { setAddForm(BLANK_ADD); setAddError(""); setAddDlg(true); }}>
+            Add User
+          </Button>
+          <Button size="small" startIcon={<RefreshIcon />} onClick={load}>Refresh</Button>
+        </Box>
+      </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
+      {toast && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setToast("")}>{toast}</Alert>}
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Every account in the system (developers included — they stay invisible to
+        the company team). Use “Override role” to set any role on any user for
+        technical reasons; this bypasses the normal admin restrictions and is
+        audit-logged.
+      </Alert>
+
+      <Card>
+        <Box px={2} pt={2} pb={1} display="flex" alignItems="center" gap={1}>
+          <ManageAccountsIcon sx={{ color: "#9C27B0", fontSize: "1.1rem" }} />
+          <Typography variant="body2" fontWeight={700}>All Users</Typography>
+          <Chip
+            label={filtersActive ? `${visibleUsers.length} / ${users.length}` : users.length}
+            size="small" sx={{ bgcolor: "#9C27B020", color: "#9C27B0", ml: 0.5 }} />
+        </Box>
+
+        {/* Search & filter toolbar */}
+        <Box px={2} pb={1.5} display="flex" gap={1.5} flexWrap="wrap" alignItems="center">
+          <TextField
+            size="small" placeholder="Search name, email, phone…"
+            value={search} onChange={e => setSearch(e.target.value)}
+            sx={{ flex: 1, minWidth: 200 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Role</InputLabel>
+            <Select label="Role" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+              <MenuItem value="all">All roles</MenuItem>
+              {presentRoles.map(r => (
+                <MenuItem key={r} value={r}>{ALL_ROLE_CFG[r]?.label || r}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Status</InputLabel>
+            <Select label="Status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <MenuItem value="all">All statuses</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+          {filtersActive && (
+            <Button size="small" onClick={() => { setSearch(""); setRoleFilter("all"); setStatusFilter("all"); }}>
+              Clear
+            </Button>
+          )}
+        </Box>
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={4}><CircularProgress size={28} /></Box>
+        ) : (
+          <TableContainer>
+            <Table size="small" sx={{ minWidth: 640 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>User</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Joined</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {visibleUsers.map(u => {
+                  const rc = ALL_ROLE_CFG[u.role] || ALL_ROLE_CFG.driver;
+                  const isSelf = u._id === currentUser?.id;
+                  return (
+                    <TableRow key={u._id} hover>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1.5}>
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: avatarColor(u.name), color: "#fff", fontSize: "0.8rem", fontWeight: 800 }}>
+                            {u.name?.charAt(0)}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {u.name}
+                              {isSelf && <Chip label="You" size="small" sx={{ height: 16, fontSize: "0.6rem", ml: 0.5 }} />}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">{u.email}</Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={rc.label} size="small" sx={{ bgcolor: rc.bg, color: rc.color, fontWeight: 600 }} />
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={u.isActive ? "Active" : "Inactive"} size="small" color={u.isActive ? "success" : "default"} />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">{joined(u.createdAt)}</Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title={isSelf ? "Use another developer account to change your own role" : "Override role (technical)"}>
+                          <span>
+                            <Button size="small" variant="outlined" color="warning" disabled={isSelf}
+                              onClick={() => { setRoleDlg(u); setNewRole(u.role); }}>
+                              Override role
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {!visibleUsers.length && (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 5, color: "text.secondary" }}>
+                      {filtersActive ? "No users match your filters" : "No users found"}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Card>
+
+      {/* Override dialog */}
+      <Dialog open={Boolean(roleDlg)} onClose={() => setRoleDlg(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Override Role — {roleDlg?.name}</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Technical override — sets the role directly, bypassing normal
+            restrictions. Use with care.
+          </Alert>
+          <FormControl fullWidth size="small">
+            <InputLabel>New Role</InputLabel>
+            <Select label="New Role" value={newRole} onChange={e => setNewRole(e.target.value)}>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="fleet_manager">Fleet Manager</MenuItem>
+              <MenuItem value="driver">Driver</MenuItem>
+              <MenuItem value="developer">Developer</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRoleDlg(null)} disabled={roleSaving}>Cancel</Button>
+          <Button variant="contained" color="warning" onClick={handleOverride}
+            disabled={roleSaving || newRole === roleDlg?.role}
+            startIcon={roleSaving ? <CircularProgress size={14} color="inherit" /> : null}>
+            {roleSaving ? "Saving…" : "Override Role"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add-user dialog — create the company admin (or a fleet manager) */}
+      <Dialog open={addDlg} onClose={() => setAddDlg(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Add User</DialogTitle>
+        <DialogContent>
+          {addError && <Alert severity="error" sx={{ mb: 2 }}>{addError}</Alert>}
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <TextField size="small" fullWidth label="Full Name *" value={addForm.name}
+              onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))} />
+            <TextField size="small" fullWidth label="Email *" type="email" value={addForm.email}
+              onChange={e => setAddForm(p => ({ ...p, email: e.target.value }))} />
+            <TextField size="small" fullWidth label="Phone" value={addForm.phone}
+              onChange={e => setAddForm(p => ({ ...p, phone: e.target.value }))} />
+            <FormControl size="small" fullWidth>
+              <InputLabel>Role *</InputLabel>
+              <Select label="Role *" value={addForm.role}
+                onChange={e => setAddForm(p => ({ ...p, role: e.target.value }))}>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="fleet_manager">Fleet Manager</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField size="small" fullWidth label="Password (blank = Fleet@1234)" type="password"
+              value={addForm.password} onChange={e => setAddForm(p => ({ ...p, password: e.target.value }))} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddDlg(false)} disabled={addSaving}>Cancel</Button>
+          <Button variant="contained" onClick={handleAdd} disabled={addSaving}
+            startIcon={addSaving ? <CircularProgress size={14} color="inherit" /> : null}>
+            {addSaving ? "Creating…" : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
 // ─── Main DevDashboard ────────────────────────────────────────────────────────
 const TABS = [
   { label: "Overview",    icon: <MonitorHeartIcon  fontSize="small" /> },
@@ -1043,6 +1380,7 @@ const TABS = [
   { label: "Jobs",        icon: <WorkIcon          fontSize="small" /> },
   { label: "Incidents",   icon: <ReportProblemIcon fontSize="small" /> },
   { label: "Dev Team",    icon: <CodeIcon          fontSize="small" /> },
+  { label: "Users & Roles", icon: <ManageAccountsIcon fontSize="small" /> },
 ];
 
 export default function DevDashboard() {
@@ -1106,6 +1444,7 @@ export default function DevDashboard() {
       {tab === 6 && <JobsPanel />}
       {tab === 7 && <IncidentsPanel />}
       {tab === 8 && <DevTeamPanel />}
+      {tab === 9 && <UsersRolesPanel />}
     </Box>
   );
 }

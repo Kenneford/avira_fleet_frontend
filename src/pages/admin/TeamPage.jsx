@@ -4,7 +4,9 @@ import {
   Table, TableContainer, TableHead, TableBody, TableRow, TableCell,
   IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, FormControl, InputLabel, Alert, Avatar, Switch,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon      from "@mui/icons-material/Search";
 import PersonAddIcon   from "@mui/icons-material/PersonAdd";
 import EditIcon        from "@mui/icons-material/Edit";
 import DeleteIcon      from "@mui/icons-material/Delete";
@@ -62,6 +64,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function TeamPage() {
   const { user: currentUser } = useAuth();
+  // Developers manage the whole system and get the technical role-override.
+  const isDeveloper = currentUser?.role === "developer";
 
   const [users,       setUsers]       = useState([]);
   const [analytics,   setAnalytics]   = useState(null);
@@ -90,6 +94,11 @@ export default function TeamPage() {
   const [delDlg,   setDelDlg]   = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Search & filters
+  const [search,       setSearch]       = useState("");
+  const [roleFilter,   setRoleFilter]   = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadAll = useCallback(() => {
     setLoading(true);
@@ -104,8 +113,29 @@ export default function TeamPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Developers are managed separately in the Dev Dashboard
-  const teamMembers = users.filter(u => u.role !== "driver" && u.role !== "developer");
+  // Admins see staff only (drivers live in the Drivers page, developers are
+  // hidden). The developer manages the whole system, so they see everyone.
+  const teamMembers = isDeveloper
+    ? users
+    : users.filter(u => u.role !== "driver" && u.role !== "developer");
+
+  // Roles actually present, for the filter dropdown.
+  const presentRoles = [...new Set(teamMembers.map(u => u.role))];
+
+  // Apply search + role + status filters.
+  const visibleMembers = teamMembers.filter(u => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q
+      || u.name?.toLowerCase().includes(q)
+      || u.email?.toLowerCase().includes(q)
+      || (u.phone  || "").toLowerCase().includes(q)
+      || (u.region || "").toLowerCase().includes(q);
+    const matchesRole   = roleFilter === "all" || u.role === roleFilter;
+    const matchesStatus = statusFilter === "all"
+      || (statusFilter === "active" ? u.isActive : !u.isActive);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+  const filtersActive = search.trim() || roleFilter !== "all" || statusFilter !== "all";
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleAdd = async () => {
@@ -135,9 +165,13 @@ export default function TeamPage() {
     if (!newRole) return;
     setRoleSaving(true);
     try {
-      await dashboardAPI.updateUserRole(roleDlg._id, { role: newRole });
+      // Developers use the technical override (any role, any user);
+      // admins use the standard role endpoint (admin / fleet_manager only).
+      const res = isDeveloper
+        ? await dashboardAPI.devUpdateUserRole(roleDlg._id, { role: newRole })
+        : await dashboardAPI.updateUserRole(roleDlg._id, { role: newRole });
       setRoleDlg(null); setNewRole("");
-      setToast("Role updated.");
+      setToast(res?.data?.note || "Role updated.");
       loadAll();
     } catch (e) { setError(errorMessage(e)); }
     finally { setRoleSaving(false); }
@@ -304,8 +338,49 @@ export default function TeamPage() {
         <Box px={2.5} pt={2} pb={1} display="flex" alignItems="center" gap={1}>
           <GroupsIcon sx={{ color: "#D32F2F", fontSize: "1.1rem" }} />
           <Typography variant="h6" fontWeight={700} fontSize="0.95rem">Members</Typography>
-          <Chip label={teamMembers.length} size="small" sx={{ bgcolor: "rgba(211,47,47,0.12)", color: "#D32F2F" }} />
+          <Chip
+            label={filtersActive ? `${visibleMembers.length} / ${teamMembers.length}` : teamMembers.length}
+            size="small" sx={{ bgcolor: "rgba(211,47,47,0.12)", color: "#D32F2F" }} />
         </Box>
+
+        {/* Search & filter toolbar */}
+        <Box px={2.5} pb={1.5} display="flex" gap={1.5} flexWrap="wrap" alignItems="center">
+          <TextField
+            size="small" placeholder="Search name, email, phone, region…"
+            value={search} onChange={e => setSearch(e.target.value)}
+            sx={{ flex: 1, minWidth: 220 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Role</InputLabel>
+            <Select label="Role" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+              <MenuItem value="all">All roles</MenuItem>
+              {presentRoles.map(r => (
+                <MenuItem key={r} value={r}>{ROLE_CFG[r]?.label || r}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Status</InputLabel>
+            <Select label="Status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <MenuItem value="all">All statuses</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+          {filtersActive && (
+            <Button size="small" onClick={() => { setSearch(""); setRoleFilter("all"); setStatusFilter("all"); }}>
+              Clear
+            </Button>
+          )}
+        </Box>
+
         {loading ? (
           <Box display="flex" justifyContent="center" p={4}><CircularProgress size={28} /></Box>
         ) : (
@@ -324,7 +399,7 @@ export default function TeamPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {teamMembers.map(u => {
+                {visibleMembers.map(u => {
                   const rc   = ROLE_CFG[u.role] || ROLE_CFG.driver;
                   const isSelf = u._id === currentUser?.id;
                   const age  = calcAge(u.dateOfBirth);
@@ -380,9 +455,9 @@ export default function TeamPage() {
                             </IconButton>
                           </Tooltip>
                           {!isSelf && (
-                            <Tooltip title="Change role">
+                            <Tooltip title={isDeveloper ? "Override role (technical)" : "Change role"}>
                               <IconButton size="small" onClick={() => { setRoleDlg(u); setNewRole(u.role); }}
-                                sx={{ color: "text.secondary" }}>
+                                sx={{ color: isDeveloper ? "warning.main" : "text.secondary" }}>
                                 <Typography variant="caption" fontWeight={700} sx={{ fontSize: "0.6rem", letterSpacing: 0 }}>
                                   ROLE
                                 </Typography>
@@ -401,10 +476,10 @@ export default function TeamPage() {
                     </TableRow>
                   );
                 })}
-                {!teamMembers.length && (
+                {!visibleMembers.length && (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 5, color: "text.secondary" }}>
-                      No team members found
+                      {filtersActive ? "No members match your filters" : "No team members found"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -491,24 +566,34 @@ export default function TeamPage() {
 
       {/* ── Role Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={Boolean(roleDlg)} onClose={() => setRoleDlg(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Change Role — {roleDlg?.name}</DialogTitle>
+        <DialogTitle>
+          {isDeveloper ? "Override Role" : "Change Role"} — {roleDlg?.name}
+        </DialogTitle>
         <DialogContent>
+          {isDeveloper && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Technical override — sets any role directly, bypassing the normal
+              restrictions. Use with care.
+            </Alert>
+          )}
           <Box pt={1}>
             <FormControl fullWidth size="small">
               <InputLabel>New Role</InputLabel>
               <Select label="New Role" value={newRole} onChange={e => setNewRole(e.target.value)}>
                 <MenuItem value="admin">Admin</MenuItem>
                 <MenuItem value="fleet_manager">Fleet Manager</MenuItem>
+                {isDeveloper && <MenuItem value="driver">Driver</MenuItem>}
+                {isDeveloper && <MenuItem value="developer">Developer</MenuItem>}
               </Select>
             </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRoleDlg(null)} disabled={roleSaving}>Cancel</Button>
-          <Button variant="contained" onClick={handleRoleSave}
+          <Button variant="contained" color={isDeveloper ? "warning" : "primary"} onClick={handleRoleSave}
             disabled={roleSaving || newRole === roleDlg?.role}
             startIcon={roleSaving ? <CircularProgress size={14} color="inherit" /> : null}>
-            {roleSaving ? "Saving…" : "Update Role"}
+            {roleSaving ? "Saving…" : isDeveloper ? "Override Role" : "Update Role"}
           </Button>
         </DialogActions>
       </Dialog>

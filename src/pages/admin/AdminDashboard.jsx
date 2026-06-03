@@ -43,22 +43,40 @@ import {
 } from "../../utils/helpers";
 
 const VEHICLE_STATUS_COLORS = {
-  available:      "#4CAF50",
-  assigned:       "#2196F3",
-  maintenance:    "#FF9800",
+  available: "#4CAF50",
+  assigned: "#2196F3",
+  maintenance: "#FF9800",
   out_of_service: "#F44336",
 };
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <Box sx={{ bgcolor: "background.paper", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 1, p: 1.5, fontSize: "0.8rem" }}>
-      {label && <Typography variant="caption" display="block" fontWeight={700} mb={0.5}>{label}</Typography>}
+    <Box
+      sx={{
+        bgcolor: "background.paper",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 1,
+        p: 1.5,
+        fontSize: "0.8rem",
+      }}
+    >
+      {label && (
+        <Typography variant="caption" display="block" fontWeight={700} mb={0.5}>
+          {label}
+        </Typography>
+      )}
       {payload.map((p, i) => (
         <Box key={i} display="flex" alignItems="center" gap={1}>
-          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: p.color }} />
-          <Typography variant="caption" color="text.secondary">{p.name}:</Typography>
-          <Typography variant="caption" fontWeight={700}>{p.value}</Typography>
+          <Box
+            sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: p.color }}
+          />
+          <Typography variant="caption" color="text.secondary">
+            {p.name}:
+          </Typography>
+          <Typography variant="caption" fontWeight={700}>
+            {p.value}
+          </Typography>
         </Box>
       ))}
     </Box>
@@ -66,11 +84,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats]       = useState(null);
-  const [alerts, setAlerts]     = useState([]);
+  const [stats, setStats] = useState(null);
+  const [alerts, setAlerts] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -89,7 +107,7 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalAlerts    = alerts.length;
+  const totalAlerts = alerts.length;
   const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
 
   return (
@@ -108,7 +126,7 @@ export default function AdminDashboard() {
             Fleet Dashboard
           </Typography>
         </Box>
-        <Button
+        {/* <Button
           component={Link}
           to="/admin/vehicles/new"
           variant="contained"
@@ -116,7 +134,7 @@ export default function AdminDashboard() {
           size="small"
         >
           + Add Vehicle
-        </Button>
+        </Button> */}
       </Box>
 
       {/* Alerts */}
@@ -151,7 +169,9 @@ export default function AdminDashboard() {
             icon={<WarningAmberIcon fontSize="inherit" />}
             color={criticalAlerts > 0 ? "#F44336" : "#FF9800"}
             loading={loading}
-            sub={criticalAlerts > 0 ? `${criticalAlerts} critical` : "All reviewed"}
+            sub={
+              criticalAlerts > 0 ? `${criticalAlerts} critical` : "All reviewed"
+            }
           />
         </Grid>
         <Grid item xs={6} sm={3}>
@@ -173,8 +193,17 @@ export default function AdminDashboard() {
           <Grid item xs={12} md={4}>
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 2 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="body2" fontWeight={700} fontSize="0.85rem">
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={1}
+                >
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    fontSize="0.85rem"
+                  >
                     Fleet Utilisation
                   </Typography>
                   <Typography variant="h6" fontWeight={800} color="#D32F2F">
@@ -201,22 +230,42 @@ export default function AdminDashboard() {
                       {Object.entries(analytics.vehicleStatus)
                         .filter(([k]) => k !== "retired")
                         .map(([k]) => (
-                          <Cell key={k} fill={VEHICLE_STATUS_COLORS[k] || "#9E9E9E"} />
+                          <Cell
+                            key={k}
+                            fill={VEHICLE_STATUS_COLORS[k] || "#9E9E9E"}
+                          />
                         ))}
                     </Pie>
                     <ReTooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
-                <Box display="flex" flexWrap="wrap" gap={1} justifyContent="center" mt={0.5}>
+                <Box
+                  display="flex"
+                  flexWrap="wrap"
+                  gap={1}
+                  justifyContent="center"
+                  mt={0.5}
+                >
                   {Object.entries(VEHICLE_STATUS_COLORS).map(([k, color]) =>
                     analytics.vehicleStatus[k] != null ? (
                       <Box key={k} display="flex" alignItems="center" gap={0.5}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: color }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: "capitalize" }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            bgcolor: color,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ textTransform: "capitalize" }}
+                        >
                           {k.replace(/_/g, " ")} {analytics.vehicleStatus[k]}
                         </Typography>
                       </Box>
-                    ) : null
+                    ) : null,
                   )}
                 </Box>
               </CardContent>
@@ -227,7 +276,12 @@ export default function AdminDashboard() {
           <Grid item xs={12} md={5}>
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 2 }}>
-                <Typography variant="body2" fontWeight={700} fontSize="0.85rem" mb={1}>
+                <Typography
+                  variant="body2"
+                  fontWeight={700}
+                  fontSize="0.85rem"
+                  mb={1}
+                >
                   Schedule Activity — Last 14 Days
                 </Typography>
                 <ResponsiveContainer width="100%" height={170}>
@@ -236,7 +290,10 @@ export default function AdminDashboard() {
                     margin={{ top: 2, right: 8, left: -24, bottom: 0 }}
                     barSize={10}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.05)"
+                    />
                     <XAxis
                       dataKey="label"
                       tick={{ fontSize: 9, fill: "#777" }}
@@ -244,10 +301,28 @@ export default function AdminDashboard() {
                       tickLine={false}
                       interval={2}
                     />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#777" }} axisLine={false} tickLine={false} />
-                    <ReTooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                    <Bar dataKey="total"     name="Total"     fill="#D32F2F" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="completed" name="Completed" fill="#4CAF50" radius={[3, 3, 0, 0]} />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "#777" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <ReTooltip
+                      content={<CustomTooltip />}
+                      cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    />
+                    <Bar
+                      dataKey="total"
+                      name="Total"
+                      fill="#D32F2F"
+                      radius={[3, 3, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="completed"
+                      name="Completed"
+                      fill="#4CAF50"
+                      radius={[3, 3, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -258,20 +333,41 @@ export default function AdminDashboard() {
           <Grid item xs={12} md={3}>
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 2 }}>
-                <Typography variant="body2" fontWeight={700} fontSize="0.85rem" mb={1.5}>
+                <Typography
+                  variant="body2"
+                  fontWeight={700}
+                  fontSize="0.85rem"
+                  mb={1.5}
+                >
                   Document Expiry Snapshot
                 </Typography>
                 {analytics.expiryBuckets.slice(0, 4).map((b) => {
                   const total = b.vehicles + b.drivers;
                   const color =
-                    b.label === "Overdue"   ? "#F44336" :
-                    b.label === "0–7 days"  ? "#FF5722" :
-                    b.label === "8–30 days" ? "#FF9800" : "#D32F2F";
+                    b.label === "Overdue"
+                      ? "#F44336"
+                      : b.label === "0–7 days"
+                        ? "#FF5722"
+                        : b.label === "8–30 days"
+                          ? "#FF9800"
+                          : "#D32F2F";
                   return (
                     <Box key={b.label} mb={1}>
-                      <Box display="flex" justifyContent="space-between" mb={0.3}>
-                        <Typography variant="caption" color="text.secondary">{b.label}</Typography>
-                        <Typography variant="caption" fontWeight={700} color={color}>{total}</Typography>
+                      <Box
+                        display="flex"
+                        justifyContent="space-between"
+                        mb={0.3}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          {b.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          color={color}
+                        >
+                          {total}
+                        </Typography>
                       </Box>
                     </Box>
                   );
@@ -339,7 +435,11 @@ export default function AdminDashboard() {
                   return (
                     <TableRow key={v.id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="primary.main">
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          color="primary.main"
+                        >
                           {v.registrationNumber}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">

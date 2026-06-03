@@ -85,9 +85,29 @@ export const dashboardAPI = {
   createUser: (body) => api.post("/dashboard/users", body),
   toggleUser: (id) => api.patch(`/dashboard/users/${id}/toggle`),
   updateUserRole: (id, body) => api.patch(`/dashboard/users/${id}/role`, body),
+  // Developer-only technical override — can set ANY role on ANY user.
+  devUpdateUserRole: (id, body) =>
+    api.patch(`/dashboard/users/${id}/role-override`, body),
   updateUser: (id, body) => api.patch(`/dashboard/users/${id}`, body),
   deleteUser: (id) => api.delete(`/dashboard/users/${id}`),
   teamAnalytics: () => api.get("/dashboard/team-analytics").then((r) => r.data),
+};
+
+export const applicationsAPI = {
+  list: (params) => api.get("/driver-applications", { params }),
+  get: (id) => api.get(`/driver-applications/${id}`),
+  updateStatus: (id, body) => api.patch(`/driver-applications/${id}/status`, body),
+};
+
+export const messagingAPI = {
+  recipients: (groups) => api.get("/messaging/recipients", { params: { groups: groups.join(",") } }),
+  listCampaigns: () => api.get("/messaging/campaigns"),
+  createCampaign: (body) => api.post("/messaging/campaigns", body),
+  updateCampaign: (id, body) => api.patch(`/messaging/campaigns/${id}`, body),
+  cancelCampaign: (id) => api.patch(`/messaging/campaigns/${id}/cancel`),
+  retryCampaign: (id) => api.post(`/messaging/campaigns/${id}/retry`),
+  deleteCampaign: (id) => api.delete(`/messaging/campaigns/${id}`),
+  uploadAttachment: (formData) => api.post("/uploads/attachment", formData),
 };
 
 export const analyticsAPI = {
