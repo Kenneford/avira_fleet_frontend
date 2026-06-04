@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import { Box, CircularProgress } from "@mui/material";
 
@@ -22,37 +23,40 @@ import CampaignIcon from "@mui/icons-material/Campaign";
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
 
+// Route-level code splitting — each page becomes its own chunk loaded on
+// demand. This is the big win: previously every page (incl. charts/recharts and
+// the heavy dev dashboard) was in one ~1.3MB bundle downloaded up front.
 // Auth
-import Login from "./pages/auth/Login";
-import Verify from "./pages/auth/Verify";
+const Login = lazy(() => import("./pages/auth/Login"));
+const Verify = lazy(() => import("./pages/auth/Verify"));
 
 // Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import VehicleList from "./pages/admin/VehicleList";
-import VehicleForm from "./pages/admin/VehicleForm";
-import DriverList from "./pages/admin/DriverList";
-import DriverForm from "./pages/admin/DriverForm";
-import AlertsPage from "./pages/admin/AlertsPage";
-import TeamPage from "./pages/admin/TeamPage";
-import ApplicationsPage from "./pages/admin/ApplicationsPage";
-import MessagingPage from "./pages/admin/MessagingPage";
-import RevenuePage from "./pages/admin/RevenuePage";
-import PromotionsPage from "./pages/admin/PromotionsPage";
-import GalleryPage from "./pages/admin/GalleryPage";
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const VehicleList = lazy(() => import("./pages/admin/VehicleList"));
+const VehicleForm = lazy(() => import("./pages/admin/VehicleForm"));
+const DriverList = lazy(() => import("./pages/admin/DriverList"));
+const DriverForm = lazy(() => import("./pages/admin/DriverForm"));
+const AlertsPage = lazy(() => import("./pages/admin/AlertsPage"));
+const TeamPage = lazy(() => import("./pages/admin/TeamPage"));
+const ApplicationsPage = lazy(() => import("./pages/admin/ApplicationsPage"));
+const MessagingPage = lazy(() => import("./pages/admin/MessagingPage"));
+const RevenuePage = lazy(() => import("./pages/admin/RevenuePage"));
+const PromotionsPage = lazy(() => import("./pages/admin/PromotionsPage"));
+const GalleryPage = lazy(() => import("./pages/admin/GalleryPage"));
 
 // Analytics
-import AnalyticsPage from "./pages/analytics/AnalyticsPage";
+const AnalyticsPage = lazy(() => import("./pages/analytics/AnalyticsPage"));
 
 // Fleet Manager pages
-import ManagerDashboard from "./pages/fleet-manager/ManagerDashboard";
-import ManagerSchedules from "./pages/fleet-manager/ManagerSchedules";
+const ManagerDashboard = lazy(() => import("./pages/fleet-manager/ManagerDashboard"));
+const ManagerSchedules = lazy(() => import("./pages/fleet-manager/ManagerSchedules"));
 
 // Driver pages
-import DriverDashboard from "./pages/driver/DriverDashboard";
-import DriverSchedule from "./pages/driver/DriverSchedule";
+const DriverDashboard = lazy(() => import("./pages/driver/DriverDashboard"));
+const DriverSchedule = lazy(() => import("./pages/driver/DriverSchedule"));
 
 // Dev pages
-import DevDashboard from "./pages/dev/DevDashboard";
+const DevDashboard = lazy(() => import("./pages/dev/DevDashboard"));
 
 // ── Nav configs ──────────────────────────────────────────────────────
 const ADMIN_NAV = [
@@ -130,6 +134,13 @@ const DevLayout = ({ children }) => (
 // ── App ──────────────────────────────────────────────────────────────
 export default function App() {
   return (
+    <Suspense
+      fallback={
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <CircularProgress />
+        </Box>
+      }
+    >
     <Routes>
       {/* Public */}
       <Route path="/login" element={<Login />} />
@@ -448,5 +459,6 @@ export default function App() {
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </Suspense>
   );
 }
