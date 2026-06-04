@@ -35,6 +35,10 @@ export default function GalleryPage() {
   const [uploadForm, setUploadForm] = useState(BLANK_UPLOAD);
   const [uploadMode, setUploadMode] = useState("any"); // "any" | "photo" | "video"
   const [previewUrl, setPreviewUrl] = useState("");
+  // Multi-file (batch) upload: when more than one file is selected we queue
+  // them here and upload sequentially. Single-file keeps the rich preview flow.
+  const [batch, setBatch] = useState([]);
+  const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(BLANK_EDIT);
@@ -86,6 +90,8 @@ export default function GalleryPage() {
     setUploadForm(BLANK_UPLOAD);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
+    setBatch([]);
+    setBatchProgress({ done: 0, total: 0 });
     setError("");
     setProgress(0);
     setUploadOpen(true);
@@ -107,46 +113,98 @@ export default function GalleryPage() {
     : uploadMode === "video" ? "Upload Video"
     : "Upload to Gallery";
 
-  const closeUploadModal = () => {
-    if (uploading) return; // don't close mid-upload
+  const resetUploadState = () => {
     setUploadOpen(false);
     setUploadForm(BLANK_UPLOAD);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
+    setBatch([]);
+    setBatchProgress({ done: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const pickFile = (file) => {
-    if (!file) return;
+  const closeUploadModal = () => {
+    if (uploading) return; // don't close mid-upload
+    resetUploadState();
+  };
 
-    // Enforce strict type matching when the modal was opened from a tab's
-    // empty-state button — videos tab rejects images, photos tab rejects videos.
-    const isImage = file.type.startsWith("image/");
-    const isVideo = file.type.startsWith("video/");
-    if (uploadMode === "photo" && !isImage) {
-      setError(`Please select an image file. "${file.name}" is not an image.`);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-    if (uploadMode === "video" && !isVideo) {
-      setError(`Please select a video file. "${file.name}" is not a video.`);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-    if (uploadMode === "any" && !isImage && !isVideo) {
-      setError(`Unsupported file type: ${file.type || "unknown"}`);
+  // Accepts one OR many files. A single file uses the rich preview + title /
+  // caption flow; multiple files switch to a batch queue (each gets the
+  // website's branded default title/caption, editable afterwards).
+  const pickFiles = (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+
+    const okForMode = (file) => {
+      const isImage = file.type.startsWith("image/");
+      const isVideo = file.type.startsWith("video/");
+      if (uploadMode === "photo") return isImage;
+      if (uploadMode === "video") return isVideo;
+      return isImage || isVideo;
+    };
+
+    const valid = files.filter(okForMode);
+    const skipped = files.length - valid.length;
+
+    if (!valid.length) {
+      setError(
+        uploadMode === "photo" ? "Please select image file(s)."
+        : uploadMode === "video" ? "Please select video file(s)."
+        : "Please select image or video file(s).",
+      );
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
+    setError(skipped ? `${skipped} file(s) skipped — wrong type for this upload.` : "");
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setError("");
-    setUploadForm((prev) => ({ ...prev, file }));
-    setPreviewUrl(URL.createObjectURL(file));
+
+    if (valid.length === 1) {
+      setBatch([]);
+      setUploadForm((prev) => ({ ...prev, file: valid[0] }));
+      setPreviewUrl(URL.createObjectURL(valid[0]));
+    } else {
+      setUploadForm(BLANK_UPLOAD);
+      setPreviewUrl("");
+      setBatch(valid);
+    }
   };
 
   const submitUpload = async () => {
-    if (!uploadForm.file || uploading) return;
+    if (uploading) return;
+
+    // ── Multi-file (batch) upload — sequential, with per-file + overall progress.
+    if (batch.length > 0) {
+      setUploading(true);
+      setError("");
+      setBatchProgress({ done: 0, total: batch.length });
+      const failed = [];
+      for (let i = 0; i < batch.length; i++) {
+        try {
+          await galleryAPI.upload(
+            batch[i],
+            { title: "", caption: "", sortOrder: items.length + i },
+            (p) => setProgress(p),
+          );
+        } catch {
+          failed.push(batch[i].name);
+        }
+        setBatchProgress({ done: i + 1, total: batch.length });
+        setProgress(0);
+      }
+      await load();
+      setUploading(false);
+      if (failed.length) {
+        setError(`${failed.length} of ${batch.length} failed: ${failed.join(", ")}`);
+        setBatch([]);
+      } else {
+        resetUploadState();
+      }
+      return;
+    }
+
+    // ── Single-file upload — rich flow with optional title / caption.
+    if (!uploadForm.file) return;
     setUploading(true);
     setError("");
     try {
@@ -160,12 +218,7 @@ export default function GalleryPage() {
         (p) => setProgress(p),
       );
       await load();
-      // Close on success
-      setUploadOpen(false);
-      setUploadForm(BLANK_UPLOAD);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      resetUploadState();
     } catch (e) {
       setError(e?.message || "Upload failed");
     } finally {
@@ -285,8 +338,9 @@ export default function GalleryPage() {
             ref={fileInputRef}
             type="file"
             accept={uploadAccept}
+            multiple
             style={{ display: "none" }}
-            onChange={(e) => pickFile(e.target.files?.[0])}
+            onChange={(e) => pickFiles(e.target.files)}
           />
         </Stack>
       </Box>
@@ -464,9 +518,9 @@ export default function GalleryPage() {
               onClick={() => !uploading && fileInputRef.current?.click()}
               sx={{
                 border: "2px dashed",
-                borderColor: uploadForm.file ? "primary.main" : "divider",
+                borderColor: uploadForm.file || batch.length ? "primary.main" : "divider",
                 borderRadius: 2,
-                p: uploadForm.file ? 0 : 4,
+                p: uploadForm.file || batch.length ? 0 : 4,
                 textAlign: "center",
                 cursor: uploading ? "default" : "pointer",
                 bgcolor: "action.hover",
@@ -476,7 +530,35 @@ export default function GalleryPage() {
                 "&:hover": { borderColor: uploading ? "divider" : "primary.main" },
               }}
             >
-              {uploadForm.file ? (
+              {batch.length > 0 ? (
+                <Box sx={{ p: 2, textAlign: "left" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {batch.length} files selected
+                    </Typography>
+                    {!uploading && (
+                      <Button size="small" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+                        Change
+                      </Button>
+                    )}
+                  </Box>
+                  <Box component="ul" sx={{ m: 0, pl: 2.5, maxHeight: 180, overflowY: "auto" }}>
+                    {batch.map((f, idx) => (
+                      <li key={idx}>
+                        <Typography
+                          variant="caption"
+                          color={uploading && idx < batchProgress.done ? "success.main" : "text.secondary"}
+                          noWrap
+                          display="block"
+                        >
+                          {uploading && idx < batchProgress.done ? "✓ " : ""}
+                          {f.name} • {(f.size / (1024 * 1024)).toFixed(2)} MB
+                        </Typography>
+                      </li>
+                    ))}
+                  </Box>
+                </Box>
+              ) : uploadForm.file ? (
                 <Box sx={{ position: "relative" }}>
                   {uploadForm.file.type.startsWith("video/") ? (
                     <Box
@@ -525,43 +607,57 @@ export default function GalleryPage() {
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
                     Click to select{" "}
                     {uploadMode === "photo"
-                      ? "an image"
+                      ? "image(s)"
                       : uploadMode === "video"
-                      ? "a video"
-                      : "an image or video"}
+                      ? "video(s)"
+                      : "image(s) or video(s)"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {uploadHelpText}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {uploadHelpText}
+                    You can select several files at once.
                   </Typography>
                 </Box>
               )}
             </Box>
 
-            <TextField
-              label="Title (optional)"
-              value={uploadForm.title}
-              onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-              fullWidth
-              disabled={uploading}
-              inputProps={{ maxLength: 120 }}
-              helperText={`${uploadForm.title.length}/120 — headline shown on the website`}
-            />
-            <TextField
-              label="Caption (optional)"
-              value={uploadForm.caption}
-              onChange={(e) => setUploadForm({ ...uploadForm, caption: e.target.value })}
-              fullWidth
-              multiline
-              minRows={2}
-              disabled={uploading}
-              inputProps={{ maxLength: 240 }}
-              helperText={`${uploadForm.caption.length}/240 — longer description shown under the title`}
-            />
+            {batch.length > 0 ? (
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                Title &amp; caption aren&apos;t set for batch uploads — each item gets
+                the Avira default and can be edited individually afterwards.
+              </Alert>
+            ) : (
+              <>
+                <TextField
+                  label="Title (optional)"
+                  value={uploadForm.title}
+                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                  fullWidth
+                  disabled={uploading}
+                  inputProps={{ maxLength: 120 }}
+                  helperText={`${uploadForm.title.length}/120 — headline shown on the website`}
+                />
+                <TextField
+                  label="Caption (optional)"
+                  value={uploadForm.caption}
+                  onChange={(e) => setUploadForm({ ...uploadForm, caption: e.target.value })}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  disabled={uploading}
+                  inputProps={{ maxLength: 240 }}
+                  helperText={`${uploadForm.caption.length}/240 — longer description shown under the title`}
+                />
+              </>
+            )}
 
             {uploading && (
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Uploading… {progress}%
+                  {batch.length > 0
+                    ? `Uploading ${batchProgress.done + 1} of ${batchProgress.total}… ${progress}%`
+                    : `Uploading… ${progress}%`}
                 </Typography>
                 <LinearProgress
                   variant="determinate"
@@ -586,10 +682,16 @@ export default function GalleryPage() {
             onClick={submitUpload}
             variant="contained"
             color="primary"
-            disabled={!uploadForm.file || uploading}
+            disabled={(!uploadForm.file && batch.length === 0) || uploading}
             startIcon={uploading ? null : <CloudUploadIcon />}
           >
-            {uploading ? `Uploading ${progress}%` : "Upload"}
+            {uploading
+              ? batch.length > 0
+                ? `Uploading ${batchProgress.done}/${batchProgress.total}`
+                : `Uploading ${progress}%`
+              : batch.length > 1
+              ? `Upload ${batch.length} files`
+              : "Upload"}
           </Button>
         </DialogActions>
       </Dialog>
