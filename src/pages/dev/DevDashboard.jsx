@@ -13,6 +13,7 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import PersonAddIcon     from "@mui/icons-material/PersonAdd";
 import DeleteIcon        from "@mui/icons-material/Delete";
 import CodeIcon          from "@mui/icons-material/Code";
+import VpnKeyIcon        from "@mui/icons-material/VpnKey";
 import StorageIcon       from "@mui/icons-material/Storage";
 import MemoryIcon        from "@mui/icons-material/Memory";
 import HttpIcon          from "@mui/icons-material/Http";
@@ -1148,6 +1149,14 @@ function UsersRolesPanel() {
     finally { setRoleSaving(false); }
   };
 
+  const handleResetPassword = async (u) => {
+    try {
+      const { data } = await dashboardAPI.resetUserPassword(u._id);
+      setToast(`New code for ${u.name} (${u.email}): ${data.defaultPassword} — they sign in with their email and this code.`);
+      load();
+    } catch (e) { setError(errorMessage(e)); }
+  };
+
   const handleAdd = async () => {
     if (!addForm.name || !addForm.email || !addForm.role) {
       setAddError("Name, email and role are required."); return;
@@ -1155,10 +1164,13 @@ function UsersRolesPanel() {
     setAddSaving(true); setAddError("");
     try {
       const r = await dashboardAPI.createUser(addForm);
+      const d = r.data;
       setAddDlg(false); setAddForm(BLANK_ADD);
-      setToast(r.data.defaultPassword
-        ? `User created. Default password: ${r.data.defaultPassword}`
-        : "User created.");
+      setToast(
+        d.verificationSent
+          ? `User created — an activation email was sent. They sign in with their email and this code: ${d.defaultPassword}`
+          : `User created (email didn't send). Tell them to sign in with their email and this code: ${d.defaultPassword}`
+      );
       load();
     } catch (e) { setAddError(errorMessage(e)); }
     finally { setAddSaving(false); }
@@ -1280,14 +1292,21 @@ function UsersRolesPanel() {
                         <Typography variant="caption" color="text.secondary">{joined(u.createdAt)}</Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title={isSelf ? "Use another developer account to change your own role" : "Override role (technical)"}>
-                          <span>
-                            <Button size="small" variant="outlined" color="warning" disabled={isSelf}
-                              onClick={() => { setRoleDlg(u); setNewRole(u.role); }}>
-                              Override role
-                            </Button>
-                          </span>
-                        </Tooltip>
+                        <Box display="flex" gap={0.5} justifyContent="center" alignItems="center">
+                          <Tooltip title="Reset password / resend code">
+                            <IconButton size="small" onClick={() => handleResetPassword(u)}>
+                              <VpnKeyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={isSelf ? "Use another developer account to change your own role" : "Override role (technical)"}>
+                            <span>
+                              <Button size="small" variant="outlined" color="warning" disabled={isSelf}
+                                onClick={() => { setRoleDlg(u); setNewRole(u.role); }}>
+                                Override role
+                              </Button>
+                            </span>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   );

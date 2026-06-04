@@ -24,6 +24,7 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 
 // Auth
 import Login from "./pages/auth/Login";
+import Verify from "./pages/auth/Verify";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -132,6 +133,7 @@ export default function App() {
     <Routes>
       {/* Public */}
       <Route path="/login" element={<Login />} />
+      <Route path="/verify" element={<Verify />} />
       <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* Admin */}
