@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -32,8 +32,15 @@ const ROLE_REDIRECT = {
 };
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Already signed in? Skip the form and go straight to the right dashboard.
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(ROLE_REDIRECT[user.role] || "/", { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const { mode, toggleMode } = useThemeMode();
   const isDark = mode === "dark";
@@ -62,6 +69,26 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  // While the session is being restored — or an existing session is about to
+  // redirect — show a spinner instead of flashing the login form.
+  if (authLoading || user) {
+    return (
+      <ThemeProvider theme={lightTheme}>
+        <Box
+          sx={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: "background.default",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <Box className={styles.page} sx={{ bgcolor: "background.default" }}>

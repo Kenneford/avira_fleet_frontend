@@ -22,6 +22,13 @@ import {
   Popover,
   CircularProgress,
   Chip,
+  Alert,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -38,7 +45,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useAuth } from "../../contexts/AuthContext";
 import { useThemeMode } from "../../contexts/ThemeContext";
-import { dashboardAPI } from "../../api/client";
+import { dashboardAPI, authAPI } from "../../api/client";
 import { avatarColor } from "../../utils/helpers";
 import styles from "./DashboardLayout.module.scss";
 
@@ -50,7 +57,30 @@ const TYPE_ICONS = {
 };
 
 export default function DashboardLayout({ navItems, children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
+
+  // Password reset (temporary-password flag)
+  const [pwDlg, setPwDlg] = useState(false);
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwErr, setPwErr] = useState("");
+
+  const submitPassword = async () => {
+    setPwErr("");
+    if (pw.next.length < 8) { setPwErr("New password must be at least 8 characters."); return; }
+    if (pw.next !== pw.confirm) { setPwErr("Passwords don't match."); return; }
+    setPwSaving(true);
+    try {
+      await authAPI.changePassword({ currentPassword: pw.current, newPassword: pw.next });
+      await refreshUser();
+      setPwDlg(false);
+      setPw({ current: "", next: "", confirm: "" });
+    } catch (e) {
+      setPwErr(e?.response?.data?.message || "Could not update password.");
+    } finally {
+      setPwSaving(false);
+    }
+  };
   const { mode, toggleMode } = useThemeMode();
   const theme = useTheme();
   const location = useLocation();
@@ -582,9 +612,51 @@ export default function DashboardLayout({ navItems, children }) {
           sx={{ flex: 1, p: { xs: 2, md: 3 }, overflow: "auto" }}
           className="page-enter"
         >
+          {user?.mustResetPassword && (
+            <Alert
+              severity="warning"
+              sx={{ mb: 2 }}
+              action={
+                <Button color="inherit" size="small" onClick={() => { setPwErr(""); setPwDlg(true); }}>
+                  Reset password
+                </Button>
+              }
+            >
+              Your account is using a temporary password. Please set a new password to secure it.
+            </Alert>
+          )}
           {children}
         </Box>
       </Box>
+
+      {/* Reset-password dialog */}
+      <Dialog open={pwDlg} onClose={() => !pwSaving && setPwDlg(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Set a new password</DialogTitle>
+        <DialogContent>
+          {pwErr && <Alert severity="error" sx={{ mb: 2 }}>{pwErr}</Alert>}
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <TextField
+              fullWidth size="small" type="password" label="Current / temporary password"
+              value={pw.current} onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
+            />
+            <TextField
+              fullWidth size="small" type="password" label="New password (min 8 chars)"
+              value={pw.next} onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))}
+            />
+            <TextField
+              fullWidth size="small" type="password" label="Confirm new password"
+              value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPwDlg(false)} disabled={pwSaving}>Cancel</Button>
+          <Button variant="contained" onClick={submitPassword} disabled={pwSaving}
+            startIcon={pwSaving ? <CircularProgress size={14} color="inherit" /> : null}>
+            {pwSaving ? "Saving…" : "Update password"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

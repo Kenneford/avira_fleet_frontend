@@ -9,16 +9,19 @@ const BASE_URL = import.meta.env.PROD
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
+  withCredentials: true, // send/receive the httpOnly auth cookie
 });
 
-// Attach access token to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// Cookie-only auth: the httpOnly auth cookie is sent automatically because the
+// client uses `withCredentials: true`. We deliberately do NOT read tokens from
+// localStorage, so an XSS attacker can't steal them.
+//
+// (For a future Electron desktop build, which can't use cross-site cookies,
+//  re-introduce a request interceptor here that attaches a Bearer token held
+//  in memory / Electron safeStorage.)
 
-// Handle token expiry — auto-refresh
+// On access-token expiry, transparently refresh (the refresh cookie is sent
+// automatically), then retry the original request once.
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -30,18 +33,10 @@ api.interceptors.response.use(
     ) {
       original._retry = true;
       try {
-        const refreshToken = localStorage.getItem("refresh_token");
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
-        localStorage.setItem("access_token", data.accessToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
-        return api(original);
+        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        return api(original); // new access cookie is now set
       } catch {
-        // Refresh failed — clear session
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        window.location.href = "#/login";
+        if (typeof window !== "undefined") window.location.href = "#/login";
       }
     }
     return Promise.reject(err);
@@ -53,9 +48,12 @@ export default api;
 // ─── Endpoint helpers ────────────────────────────────────────────
 export const authAPI = {
   login: (body) => api.post("/auth/login", body),
+  logout: () => api.post("/auth/logout"),
   me: () => api.get("/auth/me"),
   changePassword: (body) => api.put("/auth/change-password", body),
   refresh: (body) => api.post("/auth/refresh", body),
+  verify: (body) => api.post("/auth/verify", body),
+  verifyInfo: (token) => api.get(`/auth/verify/${token}`),
 };
 
 export const vehicleAPI = {
@@ -88,6 +86,7 @@ export const dashboardAPI = {
   // Developer-only technical override — can set ANY role on ANY user.
   devUpdateUserRole: (id, body) =>
     api.patch(`/dashboard/users/${id}/role-override`, body),
+  resetUserPassword: (id) => api.patch(`/dashboard/users/${id}/reset-password`),
   updateUser: (id, body) => api.patch(`/dashboard/users/${id}`, body),
   deleteUser: (id) => api.delete(`/dashboard/users/${id}`),
   teamAnalytics: () => api.get("/dashboard/team-analytics").then((r) => r.data),
@@ -168,7 +167,6 @@ export const galleryAPI = {
    * @param {function} onProgress Called with 0–100 as the upload progresses
    */
   upload(file, meta = {}, onProgress) {
-    const token = localStorage.getItem("access_token");
     const form  = new FormData();
     form.append("file", file);
     if (meta.caption !== undefined)   form.append("caption", meta.caption);
@@ -177,7 +175,7 @@ export const galleryAPI = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${BASE_URL}/gallery/upload`);
-      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.withCredentials = true; // send the httpOnly auth cookie
 
       if (onProgress) {
         xhr.upload.onprogress = (e) => {

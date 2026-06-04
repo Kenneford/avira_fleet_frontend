@@ -10,6 +10,7 @@ import SearchIcon      from "@mui/icons-material/Search";
 import PersonAddIcon   from "@mui/icons-material/PersonAdd";
 import EditIcon        from "@mui/icons-material/Edit";
 import DeleteIcon      from "@mui/icons-material/Delete";
+import VpnKeyIcon      from "@mui/icons-material/VpnKey";
 import GroupsIcon      from "@mui/icons-material/Groups";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer, Legend,
@@ -143,8 +144,13 @@ export default function TeamPage() {
     setAddSaving(true); setAddError("");
     try {
       const r = await dashboardAPI.createUser(addForm);
+      const d = r.data;
       setAddDlg(false); setAddForm(BLANK_USER);
-      setToast(r.data.defaultPassword ? `User created. Default password: ${r.data.defaultPassword}` : "User created.");
+      setToast(
+        d.verificationSent
+          ? `User created — an activation email was sent. They sign in with their email and this code: ${d.defaultPassword}`
+          : `User created (email didn't send). Tell them to sign in with their email and this code: ${d.defaultPassword}`
+      );
       loadAll();
     } catch (e) { setAddError(errorMessage(e)); }
     finally { setAddSaving(false); }
@@ -175,6 +181,14 @@ export default function TeamPage() {
       loadAll();
     } catch (e) { setError(errorMessage(e)); }
     finally { setRoleSaving(false); }
+  };
+
+  const resetPassword = async (u) => {
+    try {
+      const { data } = await dashboardAPI.resetUserPassword(u._id);
+      setToast(`New code for ${u.name} (${u.email}): ${data.defaultPassword} — they sign in with their email and this code.`);
+      loadAll();
+    } catch (e) { setError(errorMessage(e)); }
   };
 
   const handleToggle = async (u) => {
@@ -464,6 +478,11 @@ export default function TeamPage() {
                               </IconButton>
                             </Tooltip>
                           )}
+                          <Tooltip title="Reset password / resend code">
+                            <IconButton size="small" onClick={() => resetPassword(u)} sx={{ color: "text.secondary" }}>
+                              <VpnKeyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                           {!isSelf && (
                             <Tooltip title="Delete user">
                               <IconButton size="small" color="error" onClick={() => setDelDlg(u)}>
