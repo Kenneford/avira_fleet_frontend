@@ -147,9 +147,7 @@ export default function TeamPage() {
       const d = r.data;
       setAddDlg(false); setAddForm(BLANK_USER);
       setToast(
-        d.verificationSent
-          ? `User created — an activation email was sent. They sign in with their email and this code: ${d.defaultPassword}`
-          : `User created (email didn't send). Tell them to sign in with their email and this code: ${d.defaultPassword}`
+        `User created. They sign in with their email and this code: ${d.defaultPassword} (an activation email is also sent if email is enabled).`
       );
       loadAll();
     } catch (e) { setAddError(errorMessage(e)); }

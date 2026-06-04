@@ -28,6 +28,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
+import { useTheme } from "@mui/material/styles";
+import CustomTooltip from "../../components/charts/CustomTooltip";
 import { devAPI, dashboardAPI } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import { errorMessage, avatarColor } from "../../utils/helpers";
@@ -224,7 +226,7 @@ function DatabasePanel({ onRefresh, loading }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#777" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 9, fill: "#777" }} axisLine={false} tickLine={false} />
-                  <ReTooltip formatter={(v, n) => [`${v} bytes`, n]} contentStyle={{ background: "#1a1a1a", border: "1px solid #333" }} />
+                  <ReTooltip content={<CustomTooltip formatter={(v, n) => [`${v} bytes`, n]} />} />
                   <Bar dataKey="storageSize" name="Storage" fill="#D32F2F" radius={[3,3,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -240,7 +242,7 @@ function DatabasePanel({ onRefresh, loading }) {
                   <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" paddingAngle={2}>
                     {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <ReTooltip formatter={(v) => [`${v} bytes`]} contentStyle={{ background: "#1a1a1a", border: "1px solid #333" }} />
+                  <ReTooltip content={<CustomTooltip formatter={(v) => `${v} bytes`} />} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -284,8 +286,31 @@ function DatabasePanel({ onRefresh, loading }) {
 
 // 2. Requests
 function RequestsPanel() {
+  const theme = useTheme();
   const [data, setData] = useState(null);
   const [filter, setFilter] = useState("");
+
+  // Theme-aware pie label so the text is visible in BOTH light and dark mode
+  // (the default fill was effectively invisible on the card background).
+  const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name, percent }) => {
+    const RAD = Math.PI / 180;
+    const r = outerRadius + 16;
+    const x = cx + r * Math.cos(-midAngle * RAD);
+    const y = cy + r * Math.sin(-midAngle * RAD);
+    return (
+      <text
+        x={x}
+        y={y}
+        fill={theme.palette.text.primary}
+        fontSize={11}
+        fontWeight={600}
+        textAnchor={x >= cx ? "start" : "end"}
+        dominantBaseline="central"
+      >
+        {`${name} ${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   const load = useCallback(() => {
     devAPI.requests().then(r => setData(r.data)).catch(console.error);
@@ -323,7 +348,7 @@ function RequestsPanel() {
                 <BarChart data={pathStats.slice(0, 10)} layout="vertical" margin={{ left: 80, right: 16 }}>
                   <XAxis type="number" tick={{ fontSize: 9, fill: "#777" }} axisLine={false} tickLine={false} />
                   <YAxis type="category" dataKey="path" tick={{ fontSize: 9, fill: "#aaa" }} width={80} axisLine={false} tickLine={false} />
-                  <ReTooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333" }} />
+                  <ReTooltip content={<CustomTooltip />} />
                   <Bar dataKey="avgMs" name="Avg ms" fill="#D32F2F" radius={[0,3,3,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -334,14 +359,14 @@ function RequestsPanel() {
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 2 }}>
               <Typography variant="body2" fontWeight={700} mb={1}>Status Distribution</Typography>
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie data={distData} cx="50%" cy="50%" outerRadius={60} dataKey="value" paddingAngle={3} label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>
+              <ResponsiveContainer width="100%" height={210}>
+                <PieChart margin={{ top: 24, right: 16, bottom: 8, left: 16 }}>
+                  <Pie data={distData} cx="50%" cy="50%" outerRadius={55} dataKey="value" paddingAngle={3} labelLine={false} label={renderPieLabel}>
                     {distData.map((d, i) => (
                       <Cell key={i} fill={d.name.startsWith("5") ? "#F44336" : d.name.startsWith("4") ? "#FF9800" : "#4CAF50"} />
                     ))}
                   </Pie>
-                  <ReTooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333" }} />
+                  <ReTooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -1167,9 +1192,7 @@ function UsersRolesPanel() {
       const d = r.data;
       setAddDlg(false); setAddForm(BLANK_ADD);
       setToast(
-        d.verificationSent
-          ? `User created — an activation email was sent. They sign in with their email and this code: ${d.defaultPassword}`
-          : `User created (email didn't send). Tell them to sign in with their email and this code: ${d.defaultPassword}`
+        `User created. They sign in with their email and this code: ${d.defaultPassword} (an activation email is also sent if email is enabled).`
       );
       load();
     } catch (e) { setAddError(errorMessage(e)); }

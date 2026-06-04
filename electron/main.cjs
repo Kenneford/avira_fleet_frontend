@@ -39,6 +39,129 @@ function initAutoUpdate(win) {
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000)
 }
 
+// ── Manual "Check for Updates" (from the Help menu) ─────────────────────────
+function checkForUpdatesManual(win) {
+  if (isDev) {
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'Updates',
+      message: 'Update checks are disabled in development.',
+    })
+    return
+  }
+  autoUpdater.once('update-not-available', () => {
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'No updates',
+      message: `You're up to date.`,
+      detail: `Avira Fleet ${app.getVersion()} is the latest version.`,
+    })
+  })
+  autoUpdater.once('update-available', (info) => {
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'Update available',
+      message: `Version ${info.version} is downloading…`,
+      detail: `You'll be prompted to restart when it's ready.`,
+    })
+  })
+  autoUpdater.checkForUpdates().catch((err) => {
+    dialog.showMessageBox(win, {
+      type: 'error',
+      title: 'Update check failed',
+      message: 'Could not check for updates.',
+      detail: String(err && err.message ? err.message : err),
+    })
+  })
+}
+
+function showAbout(win) {
+  dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'About Avira Fleet',
+    message: 'Avira Fleet Management',
+    detail: `Version ${app.getVersion()}\n© Avira Transport`,
+  })
+}
+
+// ── Application menu (Reload, Edit, Zoom, DevTools, Updates, etc.) ───────────
+function buildMenu(win) {
+  const isMac = process.platform === 'darwin'
+  const template = [
+    ...(isMac ? [{ role: 'appMenu' }] : []),
+    {
+      label: 'File',
+      submenu: [isMac ? { role: 'close' } : { role: 'quit' }],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },        // Ctrl/Cmd+R
+        { role: 'forceReload' },   // Ctrl/Cmd+Shift+R
+        { role: 'toggleDevTools' },// Ctrl/Cmd+Shift+I / F12
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [{ role: 'close' }]),
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'Check for Updates…', click: () => checkForUpdatesManual(win) },
+        { type: 'separator' },
+        { label: 'About Avira Fleet', click: () => showAbout(win) },
+      ],
+    },
+  ]
+  return Menu.buildFromTemplate(template)
+}
+
+// Right-click context menu — copy/paste/select on inputs and selected text.
+function attachContextMenu(win) {
+  win.webContents.on('context-menu', (_event, params) => {
+    const items = []
+    if (params.isEditable || params.selectionText) {
+      items.push(
+        { role: 'cut', enabled: params.editFlags.canCut },
+        { role: 'copy', enabled: params.editFlags.canCopy },
+        { role: 'paste', enabled: params.editFlags.canPaste },
+        { type: 'separator' },
+        { role: 'selectAll' },
+      )
+    }
+    if (isDev) {
+      items.push(
+        { type: 'separator' },
+        { label: 'Inspect element', click: () => win.webContents.inspectElement(params.x, params.y) },
+      )
+    }
+    if (items.length) Menu.buildFromTemplate(items).popup({ window: win })
+  })
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -55,7 +178,11 @@ function createWindow() {
     },
   })
 
-  Menu.setApplicationMenu(null)
+  // Full application menu — Reload, Edit (copy/paste/undo), Zoom, DevTools,
+  // Fullscreen, and Check for Updates. (Previously the menu was removed
+  // entirely, which also disabled Ctrl+R reload and copy/paste shortcuts.)
+  Menu.setApplicationMenu(buildMenu(win))
+  attachContextMenu(win)
 
   if (isDev) {
     win.loadURL('http://localhost:5174')

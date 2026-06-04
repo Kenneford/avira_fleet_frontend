@@ -47,6 +47,9 @@ export default function GalleryPage() {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkForm, setLinkForm] = useState(BLANK_LINK);
 
+  const [confirmDel, setConfirmDel] = useState(null); // gallery item pending delete
+  const [deleting, setDeleting]     = useState(false);
+
   const fileInputRef = useRef(null);
 
   // Free the object URL when the upload modal closes so we don't leak memory.
@@ -286,11 +289,21 @@ export default function GalleryPage() {
     catch (e) { setError(e?.response?.data?.message || "Toggle failed"); }
   };
 
-  const remove = async (item) => {
-    const label = item.title || item.caption || "this item";
-    if (!confirm(`Delete "${label}" from the gallery? The hosted file is also removed from Cloudinary.`)) return;
-    try { await galleryAPI.remove(item._id); await load(); }
-    catch (e) { setError(e?.response?.data?.message || "Delete failed"); }
+  // Open the confirm dialog (native confirm() doesn't work in Electron).
+  const remove = (item) => setConfirmDel(item);
+
+  const doRemove = async () => {
+    if (!confirmDel) return;
+    setDeleting(true);
+    try {
+      await galleryAPI.remove(confirmDel._id);
+      setConfirmDel(null);
+      await load();
+    } catch (e) {
+      setError(e?.response?.data?.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const move = async (item, dir) => {
@@ -794,6 +807,23 @@ export default function GalleryPage() {
           <Button onClick={() => setLinkOpen(false)}>Cancel</Button>
           <Button onClick={handleLinkAdd} variant="contained" disabled={saving || !linkForm.src.trim()}>
             {saving ? "Adding..." : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!confirmDel} onClose={() => !deleting && setConfirmDel(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete gallery item?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Delete <strong>{confirmDel?.title || confirmDel?.caption || "this item"}</strong> from
+            the gallery? The hosted file is also removed from Cloudinary. This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDel(null)} disabled={deleting}>Cancel</Button>
+          <Button onClick={doRemove} color="error" variant="contained" disabled={deleting}>
+            {deleting ? "Deleting…" : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>
