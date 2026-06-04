@@ -1,0 +1,51 @@
+name: Build & Release (Windows, macOS, Linux)
+
+# Run this manually from the Actions tab (workflow_dispatch), or automatically
+# when you push a version tag like v1.1.0. Each OS runner builds its own native
+# installer and publishes the artifacts to the SAME GitHub Release (matched by
+# the version in package.json), including the auto-update feeds:
+#   • latest.yml        (Windows)
+#   • latest-mac.yml    (macOS)
+#   • latest-linux.yml  (Linux)
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required so electron-builder can create the GitHub Release
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web assets (Vite)
+        run: npm run build
+
+      - name: Build & publish desktop app
+        run: npx electron-builder --publish always
+        env:
+          # GitHub provides this automatically; permissions: contents: write
+          # above lets it create/upload to Releases.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Don't attempt macOS code-signing in CI — no Apple certificate is
+          # configured. The mac build is produced UNSIGNED (fine for internal
+          # use; see notes in the chat about Gatekeeper / notarization later).
+          CSC_IDENTITY_AUTO_DISCOVERY: false

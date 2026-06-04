@@ -1,11 +1,12 @@
 {
   "name": "avira-fleet-dashboard",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Avira Transport Fleet Management System",
   "author": "Avira Transport",
   "type": "module",
   "main": "electron/main.cjs",
+  "//version-note": "Bump this on every release so a new installer supersedes the old install.",
   "scripts": {
     "dev": "vite",
     "dev:electron": "concurrently -n vite,electron -c cyan,yellow \"vite\" \"wait-on http://localhost:5174 && cross-env NODE_ENV=development electron .\"",
@@ -14,6 +15,9 @@
     "build:win": "vite build && electron-builder --win",
     "build:mac": "vite build && electron-builder --mac",
     "build:linux": "vite build && electron-builder --linux",
+    "release:win": "vite build && electron-builder --win --publish always",
+    "release:mac": "vite build && electron-builder --mac --publish always",
+    "release:linux": "vite build && electron-builder --linux --publish always",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -25,6 +29,7 @@
     "@mui/x-date-pickers": "^6.20.0",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
+    "electron-updater": "^6.3.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",
@@ -47,6 +52,13 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Kenneford",
+        "repo": "avira_fleet_frontend"
+      }
+    ],
     "files": [
       "dist/**/*",
       "electron/**/*"
