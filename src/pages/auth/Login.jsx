@@ -245,18 +245,18 @@ export default function Login() {
               {[
                 {
                   role: "Admin",
-                  email: "admin@aviratransport.com",
-                  pwd: "111666",
+                  email: "admin@aviralife.test",
+                  pwd: "admin123",
                 },
                 {
                   role: "Fleet Manager",
-                  email: "kwame@aviratransport.com",
-                  pwd: "111666",
+                  email: "manager@aviralife.test",
+                  pwd: "manager123",
                 },
                 {
                   role: "Driver",
-                  email: "kofi@aviratransport.com",
-                  pwd: "111666",
+                  email: "driver@aviralife.test",
+                  pwd: "driver123",
                 },
               ].map(({ role, email, pwd }) => (
                 <Box
