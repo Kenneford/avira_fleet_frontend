@@ -12,16 +12,45 @@ const api = axios.create({
   withCredentials: true, // send/receive the httpOnly auth cookie
 });
 
-// Cookie-only auth: the httpOnly auth cookie is sent automatically because the
-// client uses `withCredentials: true`. We deliberately do NOT read tokens from
-// localStorage, so an XSS attacker can't steal them.
+// ── Hybrid auth: httpOnly cookies + Bearer-token fallback ──────────────────
+// The httpOnly cookies work great when the dashboard and API share a domain.
+// But across different origins — e.g. the onrender `app.` and `api.` subdomains,
+// and especially mobile browsers / in-app webviews that block "third-party"
+// cookies — the cookie is NOT sent, so every request 401s with
+// "Access token required". To work everywhere we ALSO keep the tokens and send
+// them via the Authorization header; the backend accepts cookie OR header.
 //
-// (For a future Electron desktop build, which can't use cross-site cookies,
-//  re-introduce a request interceptor here that attaches a Bearer token held
-//  in memory / Electron safeStorage.)
+// Tradeoff: tokens live in localStorage (readable by JS, so XSS-exposed). Once
+// the dashboard + API are on a shared parent domain with COOKIE_DOMAIN set, the
+// first-party cookie carries auth on its own and this header is just a fallback.
+const ACCESS_KEY = "avira_access";
+const REFRESH_KEY = "avira_refresh";
 
-// On access-token expiry, transparently refresh (the refresh cookie is sent
-// automatically), then retry the original request once.
+export const tokenStore = {
+  get access() { try { return localStorage.getItem(ACCESS_KEY) || ""; } catch { return ""; } },
+  get refresh() { try { return localStorage.getItem(REFRESH_KEY) || ""; } catch { return ""; } },
+  set(access, refresh) {
+    try {
+      if (access) localStorage.setItem(ACCESS_KEY, access);
+      if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+    } catch { /* storage unavailable (private mode) — cookies still apply */ }
+  },
+  setAccess(access) { try { if (access) localStorage.setItem(ACCESS_KEY, access); } catch { /* noop */ } },
+  clear() { try { localStorage.removeItem(ACCESS_KEY); localStorage.removeItem(REFRESH_KEY); } catch { /* noop */ } },
+};
+
+// Attach the Bearer token (when we have one) on every request, alongside the cookie.
+api.interceptors.request.use((config) => {
+  const t = tokenStore.access;
+  if (t) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${t}`;
+  }
+  return config;
+});
+
+// On access-token expiry, refresh (via stored refresh token AND/OR the refresh
+// cookie), persist the new access token, then retry the original request once.
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -33,9 +62,19 @@ api.interceptors.response.use(
     ) {
       original._retry = true;
       try {
-        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
-        return api(original); // new access cookie is now set
+        const { data } = await axios.post(
+          `${BASE_URL}/auth/refresh`,
+          { refreshToken: tokenStore.refresh || undefined },
+          { withCredentials: true },
+        );
+        if (data?.accessToken) {
+          tokenStore.setAccess(data.accessToken);
+          original.headers = original.headers || {};
+          original.headers.Authorization = `Bearer ${data.accessToken}`;
+        }
+        return api(original);
       } catch {
+        tokenStore.clear();
         if (typeof window !== "undefined") window.location.href = "#/login";
       }
     }
@@ -47,12 +86,33 @@ export default api;
 
 // ─── Endpoint helpers ────────────────────────────────────────────
 export const authAPI = {
-  login: (body) => api.post("/auth/login", body),
-  logout: () => api.post("/auth/logout"),
+  login: async (body) => {
+    const res = await api.post("/auth/login", body);
+    tokenStore.set(res.data?.accessToken, res.data?.refreshToken);
+    return res;
+  },
+  logout: async () => {
+    try {
+      return await api.post("/auth/logout");
+    } finally {
+      tokenStore.clear();
+    }
+  },
   me: () => api.get("/auth/me"),
   changePassword: (body) => api.put("/auth/change-password", body),
-  refresh: (body) => api.post("/auth/refresh", body),
-  verify: (body) => api.post("/auth/verify", body),
+  refresh: async (body) => {
+    const res = await api.post("/auth/refresh", {
+      refreshToken: tokenStore.refresh || undefined,
+      ...(body || {}),
+    });
+    tokenStore.setAccess(res.data?.accessToken);
+    return res;
+  },
+  verify: async (body) => {
+    const res = await api.post("/auth/verify", body);
+    tokenStore.set(res.data?.accessToken, res.data?.refreshToken);
+    return res;
+  },
   verifyInfo: (token) => api.get(`/auth/verify/${token}`),
 };
 
@@ -175,7 +235,9 @@ export const galleryAPI = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${BASE_URL}/gallery/upload`);
-      xhr.withCredentials = true; // send the httpOnly auth cookie
+      xhr.withCredentials = true; // send the httpOnly auth cookie (when same-site)
+      const _t = tokenStore.access; // …and the Bearer fallback for mobile/cross-site
+      if (_t) xhr.setRequestHeader("Authorization", `Bearer ${_t}`);
 
       if (onProgress) {
         xhr.upload.onprogress = (e) => {
