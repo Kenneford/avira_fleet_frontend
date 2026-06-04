@@ -16,6 +16,11 @@ on:
 permissions:
   contents: write   # required so electron-builder can create the GitHub Release
 
+# Run the JS-based actions (checkout, setup-node) on Node 24 now, ahead of
+# GitHub forcing it on 16 Jun 2026. Silences the Node 20 deprecation warning.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     strategy:
@@ -31,7 +36,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm install
