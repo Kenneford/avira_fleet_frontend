@@ -45,6 +45,8 @@ export default function PromotionsPage() {
   const [editing, setEditing]       = useState(null);   // promo id or null (create)
   const [form, setForm]             = useState(BLANK_PROMO);
   const [saving, setSaving]         = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);   // promo pending delete
+  const [deleting, setDeleting]     = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,10 +110,21 @@ export default function PromotionsPage() {
     catch { load(); }
   };
 
-  const remove = async (p) => {
-    if (!window.confirm(`Delete promo "${p.code}"? This cannot be undone.`)) return;
-    try { await promoAPI.remove(p._id); setPromos((l) => l.filter((x) => x._id !== p._id)); }
-    catch (e) { setError(e?.response?.data?.message || "Could not delete promo"); }
+  // Native confirm() doesn't work in Electron — use a modal instead.
+  const remove = (p) => setConfirmDel(p);
+
+  const doRemove = async () => {
+    if (!confirmDel) return;
+    setDeleting(true);
+    try {
+      await promoAPI.remove(confirmDel._id);
+      setPromos((l) => l.filter((x) => x._id !== confirmDel._id));
+      setConfirmDel(null);
+    } catch (e) {
+      setError(e?.response?.data?.message || "Could not delete promo");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const discountLabel = (p) =>
@@ -306,6 +319,22 @@ export default function PromotionsPage() {
           <Button onClick={() => setDialogOpen(false)} color="inherit">Cancel</Button>
           <Button onClick={save} variant="contained" disabled={saving || !form.code || form.value === ""}>
             {saving ? "Saving…" : editing ? "Save changes" : "Create promo"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!confirmDel} onClose={() => !deleting && setConfirmDel(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete promo code?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Delete promo <strong>{confirmDel?.code}</strong>? This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirmDel(null)} color="inherit" disabled={deleting}>Cancel</Button>
+          <Button onClick={doRemove} color="error" variant="contained" disabled={deleting}>
+            {deleting ? "Deleting…" : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>

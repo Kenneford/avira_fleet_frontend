@@ -28,6 +28,7 @@ import {
   Tooltip as ReTooltip,
   ResponsiveContainer,
 } from "recharts";
+import CustomTooltip from "../../components/charts/CustomTooltip";
 import { authAPI, driverAPI } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -260,7 +261,7 @@ export default function DriverDashboard() {
                           <Cell key={entry.key} fill={SCHEDULE_COLORS[entry.key] || "#888"} />
                         ))}
                       </Pie>
-                      <ReTooltip formatter={(v, name) => [v, name]} />
+                      <ReTooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
