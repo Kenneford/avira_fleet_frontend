@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -66,6 +66,8 @@ const NEXT_STATUSES = {
 };
 
 export default function VehicleList() {
+  const { pathname } = useLocation();
+  const base = pathname.startsWith("/manager") ? "/manager" : "/admin";
   const [vehicles, setVehicles] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -134,7 +136,7 @@ export default function VehicleList() {
         </Box>
         <Button
           component={Link}
-          to="/admin/vehicles/new"
+          to={`${base}/vehicles/new`}
           variant="contained"
           color="primary"
         >
@@ -331,7 +333,7 @@ export default function VehicleList() {
                             <IconButton
                               size="small"
                               component={Link}
-                              to={`/admin/vehicles/${v.id}`}
+                              to={`${base}/vehicles/${v.id}`}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
