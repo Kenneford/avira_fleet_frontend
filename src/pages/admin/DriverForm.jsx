@@ -1,8 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Box, Typography, Card, CardContent, Grid, TextField, MenuItem, Button,
-  Alert, CircularProgress, Checkbox, FormControlLabel, IconButton, Divider,
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  MenuItem,
+  Button,
+  Alert,
+  CircularProgress,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  Divider,
   InputAdornment,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -13,22 +25,47 @@ import { errorMessage } from "../../utils/helpers";
 import DocumentUpload from "../../components/DocumentUpload";
 
 const BLANK_GUARANTOR = {
-  type: "civil_servant", name: "", workplace: "", positionRole: "",
-  contact: "", relationship: "", ghanaCardNumber: "",
-  ghanaCardFrontUrl: "", ghanaCardBackUrl: "",
+  type: "civil_servant",
+  name: "",
+  workplace: "",
+  positionRole: "",
+  contact: "",
+  relationship: "",
+  ghanaCardNumber: "",
+  ghanaCardFrontUrl: "",
+  ghanaCardBackUrl: "",
 };
 
 // camelCase keys — these map 1:1 to what the backend expects.
 const BLANK = {
-  name: "", email: "", phone: "", password: "",
-  dateOfBirth: "", address: "",
-  gpsAddress: "", nearestLandmark: "",
-  licenseNumber: "", licenseClass: "Class C", licenseExpiry: "", licenseIssueDate: "",
-  hireDate: "", yearsExperience: 0, status: "active",
-  workAndPay: false, dailySales: "", deposit: 3000, agreementDate: "",
-  passportPictureUrl: "", ghanaCardNumber: "",
-  ghanaCardFrontUrl: "", ghanaCardBackUrl: "", licenseFrontUrl: "", licenseBackUrl: "",
-  emergencyContactName: "", emergencyContactPhone: "", notes: "",
+  name: "",
+  email: "",
+  phone: "",
+  password: "",
+  dateOfBirth: "",
+  address: "",
+  gpsAddress: "",
+  nearestLandmark: "",
+  licenseNumber: "",
+  licenseClass: "Class C",
+  licenseExpiry: "",
+  licenseIssueDate: "",
+  hireDate: "",
+  yearsExperience: 0,
+  status: "active",
+  workAndPay: false,
+  dailySales: "",
+  deposit: 3000,
+  agreementDate: "",
+  passportPictureUrl: "",
+  ghanaCardNumber: "",
+  ghanaCardFrontUrl: "",
+  ghanaCardBackUrl: "",
+  licenseFrontUrl: "",
+  licenseBackUrl: "",
+  emergencyContactName: "",
+  emergencyContactPhone: "",
+  notes: "",
   guarantors: [
     { ...BLANK_GUARANTOR, type: "family" },
     { ...BLANK_GUARANTOR, type: "civil_servant" },
@@ -38,10 +75,24 @@ const BLANK = {
 const SectionCard = ({ title, sub, children }) => (
   <Card sx={{ mb: 2.5 }}>
     <CardContent sx={{ p: 3 }}>
-      <Typography variant="h6" fontSize="0.9rem" fontWeight={700} mb={sub ? 0.5 : 2.5}>
+      <Typography
+        variant="h6"
+        fontSize="0.9rem"
+        fontWeight={700}
+        mb={sub ? 0.5 : 2.5}
+      >
         {title}
       </Typography>
-      {sub && <Typography variant="caption" color="text.secondary" display="block" mb={2.5}>{sub}</Typography>}
+      {sub && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          display="block"
+          mb={2.5}
+        >
+          {sub}
+        </Typography>
+      )}
       {children}
     </CardContent>
   </Card>
@@ -110,23 +161,38 @@ export default function DriverForm() {
       .finally(() => setLoading(false));
   }, [id, isEdit]);
 
-  const set = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
-  const setChecked = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.checked }));
+  const set = (field) => (e) =>
+    setForm((p) => ({ ...p, [field]: e.target.value }));
+  const setChecked = (field) => (e) =>
+    setForm((p) => ({ ...p, [field]: e.target.checked }));
   const setValue = (field, value) => setForm((p) => ({ ...p, [field]: value }));
   const setGuarantorValue = (i, field, value) =>
-    setForm((p) => ({ ...p, guarantors: p.guarantors.map((g, idx) => (idx === i ? { ...g, [field]: value } : g)) }));
+    setForm((p) => ({
+      ...p,
+      guarantors: p.guarantors.map((g, idx) =>
+        idx === i ? { ...g, [field]: value } : g,
+      ),
+    }));
 
   const setGuarantor = (i, field) => (e) => {
     const value = e.target.value;
     setForm((p) => {
-      const guarantors = p.guarantors.map((g, idx) => (idx === i ? { ...g, [field]: value } : g));
+      const guarantors = p.guarantors.map((g, idx) =>
+        idx === i ? { ...g, [field]: value } : g,
+      );
       return { ...p, guarantors };
     });
   };
   const addGuarantor = () =>
-    setForm((p) => ({ ...p, guarantors: [...p.guarantors, { ...BLANK_GUARANTOR }] }));
+    setForm((p) => ({
+      ...p,
+      guarantors: [...p.guarantors, { ...BLANK_GUARANTOR }],
+    }));
   const removeGuarantor = (i) =>
-    setForm((p) => ({ ...p, guarantors: p.guarantors.filter((_, idx) => idx !== i) }));
+    setForm((p) => ({
+      ...p,
+      guarantors: p.guarantors.filter((_, idx) => idx !== i),
+    }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,7 +200,10 @@ export default function DriverForm() {
     setError("");
     try {
       // Drop empty guarantor rows before sending.
-      const payload = { ...form, guarantors: form.guarantors.filter((g) => g.name.trim()) };
+      const payload = {
+        ...form,
+        guarantors: form.guarantors.filter((g) => g.name.trim()),
+      };
       if (isEdit) {
         await driverAPI.update(id, payload);
         setSuccess("Driver updated successfully");
@@ -156,59 +225,129 @@ export default function DriverForm() {
 
   if (loading)
     return (
-      <Box display="flex" justifyContent="center" p={6}><CircularProgress /></Box>
+      <Box display="flex" justifyContent="center" p={6}>
+        <CircularProgress />
+      </Box>
     );
 
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} size="small">Back</Button>
+        {/* <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          size="small"
+        >
+          Back
+        </Button> */}
         <Box>
-          <Typography variant="overline" display="block">Personnel</Typography>
-          <Typography variant="h4" fontWeight={800}>{isEdit ? "Edit Driver" : "Add Driver"}</Typography>
+          <Typography variant="overline" display="block">
+            Personnel
+          </Typography>
+          <Typography variant="h4" fontWeight={800}>
+            {isEdit ? "Edit Driver" : "Add Driver"}
+          </Typography>
         </Box>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} icon={false}>{success}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} icon={false}>
+          {success}
+        </Alert>
+      )}
 
       <Box component="form" onSubmit={handleSubmit}>
         {/* Personal */}
         <SectionCard title="Personal Information">
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth required label="Full Name" value={form.name} onChange={set("name")} />
+              <TextField
+                fullWidth
+                required
+                label="Full Name"
+                value={form.name}
+                onChange={set("name")}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth required label="Email Address" type="email" value={form.email} onChange={set("email")} disabled={isEdit} />
+              <TextField
+                fullWidth
+                required
+                label="Email Address"
+                type="email"
+                value={form.email}
+                onChange={set("email")}
+                disabled={isEdit}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Contact / Phone" value={form.phone} onChange={set("phone")} />
+              <TextField
+                fullWidth
+                label="Contact / Phone"
+                value={form.phone}
+                onChange={set("phone")}
+              />
             </Grid>
             {!isEdit && (
               <Grid item xs={12} sm={4}>
-                <TextField fullWidth label="Password (blank = default)" type="password" value={form.password}
-                  onChange={set("password")} helperText="Default: Driver@1234" />
+                <TextField
+                  fullWidth
+                  label="Password (blank = default)"
+                  type="password"
+                  value={form.password}
+                  onChange={set("password")}
+                  helperText="Default: Driver@1234"
+                />
               </Grid>
             )}
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Date of Birth" type="date" value={form.dateOfBirth}
-                onChange={set("dateOfBirth")} InputLabelProps={{ shrink: true }} />
+              <TextField
+                fullWidth
+                label="Date of Birth"
+                type="date"
+                value={form.dateOfBirth}
+                onChange={set("dateOfBirth")}
+                InputLabelProps={{ shrink: true }}
+              />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="Residential Address" value={form.address} onChange={set("address")} />
+              <TextField
+                fullWidth
+                label="Residential Address"
+                value={form.address}
+                onChange={set("address")}
+              />
             </Grid>
           </Grid>
         </SectionCard>
 
         {/* Location */}
-        <SectionCard title="Location" sub="Ghana Post GPS address and nearest landmark, as on the agreement form.">
+        <SectionCard
+          title="Location"
+          sub="Ghana Post GPS address and nearest landmark, as on the agreement form."
+        >
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="GPS Address" value={form.gpsAddress} onChange={set("gpsAddress")} placeholder="e.g. GA-123-4567" />
+              <TextField
+                fullWidth
+                label="GPS Address"
+                value={form.gpsAddress}
+                onChange={set("gpsAddress")}
+                placeholder="e.g. GA-123-4567"
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Location & Nearest Landmark" value={form.nearestLandmark} onChange={set("nearestLandmark")} />
+              <TextField
+                fullWidth
+                label="Location & Nearest Landmark"
+                value={form.nearestLandmark}
+                onChange={set("nearestLandmark")}
+              />
             </Grid>
           </Grid>
         </SectionCard>
@@ -217,16 +356,40 @@ export default function DriverForm() {
         <SectionCard title="License & Employment">
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth required label="License Number" value={form.licenseNumber} onChange={set("licenseNumber")} />
+              <TextField
+                fullWidth
+                required
+                label="License Number"
+                value={form.licenseNumber}
+                onChange={set("licenseNumber")}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth select label="License Class" value={form.licenseClass} onChange={set("licenseClass")}>
-                {["Class A", "Class B", "Class C", "Class D", "Class E"].map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              <TextField
+                fullWidth
+                select
+                label="License Class"
+                value={form.licenseClass}
+                onChange={set("licenseClass")}
+              >
+                {["Class A", "Class B", "Class C", "Class D", "Class E"].map(
+                  (c) => (
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
+                  ),
+                )}
               </TextField>
             </Grid>
             <Grid item xs={12} sm={4}>
               {isEdit && (
-                <TextField fullWidth select label="Driver Status" value={form.status} onChange={set("status")}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Driver Status"
+                  value={form.status}
+                  onChange={set("status")}
+                >
                   <MenuItem value="active">Active</MenuItem>
                   <MenuItem value="on_leave">On Leave</MenuItem>
                   <MenuItem value="suspended">Suspended</MenuItem>
@@ -235,68 +398,156 @@ export default function DriverForm() {
               )}
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth required label="License Expiry" type="date" value={form.licenseExpiry}
-                onChange={set("licenseExpiry")} InputLabelProps={{ shrink: true }} />
+              <TextField
+                fullWidth
+                required
+                label="License Expiry"
+                type="date"
+                value={form.licenseExpiry}
+                onChange={set("licenseExpiry")}
+                InputLabelProps={{ shrink: true }}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="License Issue Date" type="date" value={form.licenseIssueDate}
-                onChange={set("licenseIssueDate")} InputLabelProps={{ shrink: true }} />
+              <TextField
+                fullWidth
+                label="License Issue Date"
+                type="date"
+                value={form.licenseIssueDate}
+                onChange={set("licenseIssueDate")}
+                InputLabelProps={{ shrink: true }}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Hire Date" type="date" value={form.hireDate}
-                onChange={set("hireDate")} InputLabelProps={{ shrink: true }} />
+              <TextField
+                fullWidth
+                label="Hire Date"
+                type="date"
+                value={form.hireDate}
+                onChange={set("hireDate")}
+                InputLabelProps={{ shrink: true }}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Years of Experience" type="number" value={form.yearsExperience}
-                onChange={set("yearsExperience")} inputProps={{ min: 0, max: 50 }} />
+              <TextField
+                fullWidth
+                label="Years of Experience"
+                type="number"
+                value={form.yearsExperience}
+                onChange={set("yearsExperience")}
+                inputProps={{ min: 0, max: 50 }}
+              />
             </Grid>
           </Grid>
         </SectionCard>
 
         {/* Sales Policy Agreement */}
-        <SectionCard title="Sales Policy Agreement" sub="Work-and-pay terms from the Driver's Regular Sales Policy Agreement.">
+        <SectionCard
+          title="Sales Policy Agreement"
+          sub="Work-and-pay terms from the Driver's Regular Sales Policy Agreement."
+        >
           <Grid container spacing={2.5} alignItems="center">
             <Grid item xs={12} sm={4}>
               <FormControlLabel
-                control={<Checkbox checked={form.workAndPay} onChange={setChecked("workAndPay")} />}
+                control={
+                  <Checkbox
+                    checked={form.workAndPay}
+                    onChange={setChecked("workAndPay")}
+                  />
+                }
                 label="On Work & Pay program"
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Daily Sales" type="number" value={form.dailySales} onChange={set("dailySales")}
-                InputProps={{ startAdornment: <InputAdornment position="start">GHS</InputAdornment> }} />
+              <TextField
+                fullWidth
+                label="Daily Sales"
+                type="number"
+                value={form.dailySales}
+                onChange={set("dailySales")}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">GHS</InputAdornment>
+                  ),
+                }}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Deposit" type="number" value={form.deposit} onChange={set("deposit")}
-                InputProps={{ startAdornment: <InputAdornment position="start">GHC</InputAdornment> }} />
+              <TextField
+                fullWidth
+                label="Deposit"
+                type="number"
+                value={form.deposit}
+                onChange={set("deposit")}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">GHC</InputAdornment>
+                  ),
+                }}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField fullWidth label="Agreement Date" type="date" value={form.agreementDate}
-                onChange={set("agreementDate")} InputLabelProps={{ shrink: true }} />
+              <TextField
+                fullWidth
+                label="Agreement Date"
+                type="date"
+                value={form.agreementDate}
+                onChange={set("agreementDate")}
+                InputLabelProps={{ shrink: true }}
+              />
             </Grid>
           </Grid>
         </SectionCard>
 
         {/* Documents */}
-        <SectionCard title="Documents" sub="Upload clear photos/scans. Ghana Card and license require front and back.">
+        <SectionCard
+          title="Documents"
+          sub="Upload clear photos/scans. Ghana Card and license require front and back."
+        >
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Ghana Card Number" value={form.ghanaCardNumber} onChange={set("ghanaCardNumber")} placeholder="GHA-XXXXXXXXX-X" />
+              <TextField
+                fullWidth
+                label="Ghana Card Number"
+                value={form.ghanaCardNumber}
+                onChange={set("ghanaCardNumber")}
+                placeholder="GHA-XXXXXXXXX-X"
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <DocumentUpload label="Passport Picture" value={form.passportPictureUrl} onChange={(u) => setValue("passportPictureUrl", u)} />
+              <DocumentUpload
+                label="Passport Picture"
+                value={form.passportPictureUrl}
+                onChange={(u) => setValue("passportPictureUrl", u)}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <DocumentUpload label="Ghana Card — Front" value={form.ghanaCardFrontUrl} onChange={(u) => setValue("ghanaCardFrontUrl", u)} />
+              <DocumentUpload
+                label="Ghana Card — Front"
+                value={form.ghanaCardFrontUrl}
+                onChange={(u) => setValue("ghanaCardFrontUrl", u)}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <DocumentUpload label="Ghana Card — Back" value={form.ghanaCardBackUrl} onChange={(u) => setValue("ghanaCardBackUrl", u)} />
+              <DocumentUpload
+                label="Ghana Card — Back"
+                value={form.ghanaCardBackUrl}
+                onChange={(u) => setValue("ghanaCardBackUrl", u)}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <DocumentUpload label="Driver's License — Front" value={form.licenseFrontUrl} onChange={(u) => setValue("licenseFrontUrl", u)} />
+              <DocumentUpload
+                label="Driver's License — Front"
+                value={form.licenseFrontUrl}
+                onChange={(u) => setValue("licenseFrontUrl", u)}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <DocumentUpload label="Driver's License — Back" value={form.licenseBackUrl} onChange={(u) => setValue("licenseBackUrl", u)} />
+              <DocumentUpload
+                label="Driver's License — Back"
+                value={form.licenseBackUrl}
+                onChange={(u) => setValue("licenseBackUrl", u)}
+              />
             </Grid>
           </Grid>
         </SectionCard>
@@ -308,74 +559,166 @@ export default function DriverForm() {
         >
           {form.guarantors.map((g, i) => (
             <Box key={i} sx={{ mb: 2 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                <Typography variant="subtitle2" fontWeight={700}>Guarantor {i + 1}</Typography>
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={1}
+              >
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Guarantor {i + 1}
+                </Typography>
                 {form.guarantors.length > 1 && (
-                  <IconButton size="small" color="error" onClick={() => removeGuarantor(i)}>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => removeGuarantor(i)}
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 )}
               </Box>
               <Grid container spacing={2.5}>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth select label="Type" value={g.type} onChange={setGuarantor(i, "type")}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Type"
+                    value={g.type}
+                    onChange={setGuarantor(i, "type")}
+                  >
                     <MenuItem value="family">Family member</MenuItem>
-                    <MenuItem value="civil_servant">Civil Servant / Gov't worker</MenuItem>
+                    <MenuItem value="civil_servant">
+                      Civil Servant / Gov't worker
+                    </MenuItem>
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Full Name" value={g.name} onChange={setGuarantor(i, "name")} />
+                  <TextField
+                    fullWidth
+                    label="Full Name"
+                    value={g.name}
+                    onChange={setGuarantor(i, "name")}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Work Place" value={g.workplace} onChange={setGuarantor(i, "workplace")} />
+                  <TextField
+                    fullWidth
+                    label="Work Place"
+                    value={g.workplace}
+                    onChange={setGuarantor(i, "workplace")}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Position / Role" value={g.positionRole} onChange={setGuarantor(i, "positionRole")} />
+                  <TextField
+                    fullWidth
+                    label="Position / Role"
+                    value={g.positionRole}
+                    onChange={setGuarantor(i, "positionRole")}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <TextField fullWidth label="Contact" value={g.contact} onChange={setGuarantor(i, "contact")} />
+                  <TextField
+                    fullWidth
+                    label="Contact"
+                    value={g.contact}
+                    onChange={setGuarantor(i, "contact")}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <TextField fullWidth label="Relationship" value={g.relationship} onChange={setGuarantor(i, "relationship")} />
+                  <TextField
+                    fullWidth
+                    label="Relationship"
+                    value={g.relationship}
+                    onChange={setGuarantor(i, "relationship")}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <TextField fullWidth label="Ghana Card No." value={g.ghanaCardNumber} onChange={setGuarantor(i, "ghanaCardNumber")} />
+                  <TextField
+                    fullWidth
+                    label="Ghana Card No."
+                    value={g.ghanaCardNumber}
+                    onChange={setGuarantor(i, "ghanaCardNumber")}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <DocumentUpload label="Guarantor Ghana Card — Front" value={g.ghanaCardFrontUrl}
-                    onChange={(u) => setGuarantorValue(i, "ghanaCardFrontUrl", u)} />
+                  <DocumentUpload
+                    label="Guarantor Ghana Card — Front"
+                    value={g.ghanaCardFrontUrl}
+                    onChange={(u) =>
+                      setGuarantorValue(i, "ghanaCardFrontUrl", u)
+                    }
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <DocumentUpload label="Guarantor Ghana Card — Back" value={g.ghanaCardBackUrl}
-                    onChange={(u) => setGuarantorValue(i, "ghanaCardBackUrl", u)} />
+                  <DocumentUpload
+                    label="Guarantor Ghana Card — Back"
+                    value={g.ghanaCardBackUrl}
+                    onChange={(u) =>
+                      setGuarantorValue(i, "ghanaCardBackUrl", u)
+                    }
+                  />
                 </Grid>
               </Grid>
               {i < form.guarantors.length - 1 && <Divider sx={{ mt: 2.5 }} />}
             </Box>
           ))}
-          <Button size="small" startIcon={<AddIcon />} onClick={addGuarantor}>Add guarantor</Button>
+          <Button size="small" startIcon={<AddIcon />} onClick={addGuarantor}>
+            Add guarantor
+          </Button>
         </SectionCard>
 
         {/* Emergency contact & notes */}
         <SectionCard title="Emergency Contact & Notes">
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Emergency Contact Name" value={form.emergencyContactName} onChange={set("emergencyContactName")} />
+              <TextField
+                fullWidth
+                label="Emergency Contact Name"
+                value={form.emergencyContactName}
+                onChange={set("emergencyContactName")}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Emergency Contact Phone" value={form.emergencyContactPhone} onChange={set("emergencyContactPhone")} />
+              <TextField
+                fullWidth
+                label="Emergency Contact Phone"
+                value={form.emergencyContactPhone}
+                onChange={set("emergencyContactPhone")}
+              />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth multiline rows={2} label="Notes" value={form.notes} onChange={set("notes")} />
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label="Notes"
+                value={form.notes}
+                onChange={set("notes")}
+              />
             </Grid>
           </Grid>
         </SectionCard>
 
         <Box display="flex" gap={1.5}>
-          <Button type="submit" variant="contained" color="primary" disabled={saving} size="large">
-            {saving ? <CircularProgress size={18} /> : isEdit ? "Save Changes" : "Add Driver"}
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={saving}
+            size="large"
+          >
+            {saving ? (
+              <CircularProgress size={18} />
+            ) : isEdit ? (
+              "Save Changes"
+            ) : (
+              "Add Driver"
+            )}
           </Button>
-          <Button onClick={() => navigate(-1)} size="large">Cancel</Button>
+          <Button onClick={() => navigate(-1)} size="large">
+            Cancel
+          </Button>
         </Box>
       </Box>
     </Box>
