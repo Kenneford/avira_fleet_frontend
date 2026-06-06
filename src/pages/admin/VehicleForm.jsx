@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -51,6 +51,8 @@ const BLANK = {
 export default function VehicleForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const base = pathname.startsWith("/manager") ? "/manager" : "/admin";
   const isEdit = Boolean(id);
 
   const [form, setForm] = useState(BLANK);
@@ -102,7 +104,7 @@ export default function VehicleForm() {
       } else {
         await vehicleAPI.create(form);
         setSuccess("Vehicle registered successfully");
-        setTimeout(() => navigate("/admin/vehicles"), 1200);
+        setTimeout(() => navigate(`${base}/vehicles`), 1200);
       }
     } catch (err) {
       setError(errorMessage(err));
