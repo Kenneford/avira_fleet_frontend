@@ -7,12 +7,30 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Restore session on mount — the httpOnly auth cookie is sent automatically.
+  // Restore session on mount. On desktop the httpOnly cookie carries auth; on
+  // mobile/cross-site the cookie is blocked, so if /me fails we exchange the
+  // stored refresh token for a fresh access token and try once more. This keeps
+  // users signed in across a page refresh without relying on third-party cookies.
   useEffect(() => {
-    authAPI.me()
-      .then(({ data }) => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
+    let active = true
+    const restore = async () => {
+      try {
+        const { data } = await authAPI.me()
+        if (active) setUser(data.user)
+      } catch {
+        try {
+          await authAPI.refresh()            // uses the persisted refresh token
+          const { data } = await authAPI.me()
+          if (active) setUser(data.user)
+        } catch {
+          if (active) setUser(null)
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    restore()
+    return () => { active = false }
   }, [])
 
   // Password login. Returns the raw response:
