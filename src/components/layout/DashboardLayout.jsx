@@ -36,6 +36,8 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
+import ShieldIcon from "@mui/icons-material/Shield";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
@@ -597,6 +599,19 @@ export default function DashboardLayout({ navItems, children }) {
               {user?.email}
             </Typography>
           </Box>
+          <Divider />
+          <MenuItem onClick={() => { setAnchorEl(null); navigate("/profile"); }}>
+            <ListItemIcon>
+              <PersonIcon fontSize="small" />
+            </ListItemIcon>
+            My Profile
+          </MenuItem>
+          <MenuItem onClick={() => { setAnchorEl(null); navigate("/security"); }}>
+            <ListItemIcon>
+              <ShieldIcon fontSize="small" />
+            </ListItemIcon>
+            Security
+          </MenuItem>
           <Divider />
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>

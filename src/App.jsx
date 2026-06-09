@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import MaintenanceGate from "./components/MaintenanceGate";
+import TwoFactorNudge from "./components/TwoFactorNudge";
 import { lazy, Suspense } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import { Box, CircularProgress } from "@mui/material";
@@ -19,6 +21,8 @@ import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import CampaignIcon from "@mui/icons-material/Campaign";
+import BuildCircleIcon from "@mui/icons-material/BuildCircle";
+import CodeIcon from "@mui/icons-material/Code";
 
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -29,6 +33,13 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 // Auth
 const Login = lazy(() => import("./pages/auth/Login"));
 const Verify = lazy(() => import("./pages/auth/Verify"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const SecurityPage = lazy(() => import("./pages/account/SecurityPage"));
+const ProfilePage = lazy(() => import("./pages/account/ProfilePage"));
+const DevTeamPage = lazy(() => import("./pages/dev/DevDashboard").then((m) => ({ default: m.DevTeamPanel })));
+const DevUsersPage = lazy(() => import("./pages/dev/DevDashboard").then((m) => ({ default: m.UsersRolesPanel })));
+const DevSystemPage = lazy(() => import("./pages/dev/DevDashboard").then((m) => ({ default: m.MaintenancePanel })));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -76,6 +87,9 @@ const ADMIN_NAV = [
 
 const DEV_NAV = [
   { label: "Dev Dashboard", icon: <BugReportIcon />, to: "/dev/dashboard" },
+  { label: "Dev Team", icon: <CodeIcon />, to: "/dev/team" },
+  { label: "Users & Roles", icon: <ManageAccountsIcon />, to: "/dev/users" },
+  { label: "System", icon: <BuildCircleIcon />, to: "/dev/system" },
 ];
 
 const MANAGER_NAV = [
@@ -134,6 +148,7 @@ const DevLayout = ({ children }) => (
 // ── App ──────────────────────────────────────────────────────────────
 export default function App() {
   return (
+    <MaintenanceGate>
     <Suspense
       fallback={
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
@@ -145,6 +160,8 @@ export default function App() {
       {/* Public */}
       <Route path="/login" element={<Login />} />
       <Route path="/verify" element={<Verify />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* Admin */}
@@ -454,11 +471,59 @@ export default function App() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/dev/team"
+        element={
+          <RequireAuth roles={["developer"]}>
+            <DevLayout>
+              <DevTeamPage />
+            </DevLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dev/users"
+        element={
+          <RequireAuth roles={["developer"]}>
+            <DevLayout>
+              <DevUsersPage />
+            </DevLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dev/system"
+        element={
+          <RequireAuth roles={["developer"]}>
+            <DevLayout>
+              <DevSystemPage />
+            </DevLayout>
+          </RequireAuth>
+        }
+      />
       <Route path="/dev" element={<Navigate to="/dev/dashboard" replace />} />
 
       {/* Catch-all */}
+      <Route
+        path="/security"
+        element={
+          <RequireAuth roles={["admin", "fleet_manager", "driver", "developer"]}>
+            <SecurityPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth roles={["admin", "fleet_manager", "driver", "developer"]}>
+            <ProfilePage />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
     </Suspense>
+    <TwoFactorNudge />
+    </MaintenanceGate>
   );
 }
