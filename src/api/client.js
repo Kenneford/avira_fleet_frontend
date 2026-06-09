@@ -12,16 +12,35 @@ const api = axios.create({
   withCredentials: true, // httpOnly auth cookie is the source of truth
 });
 
-// ── Auth token handling ───────────────────────────────────────────────────────
-// The httpOnly cookies are the source of truth. We DO NOT persist tokens in
-// localStorage (that's readable by any injected script — an XSS token-theft
-// risk). We keep the access token only in memory for the lifetime of the tab,
-// as a Bearer fallback for cross-site setups where the browser blocks the
-// third-party cookie. On reload, memory is empty and the session is restored
-// from the cookie via /auth/me (and refreshed via the refresh cookie).
+// ── Auth token handling ──────────────────────────────────────
+// In production the dashboard and API are on different subdomains, so the
+// httpOnly cookie is a THIRD-PARTY cookie that mobile browsers block. That means
+// the cookie alone can't restore a session after a page refresh on mobile. To
+// survive reloads we persist ONLY the long-lived refresh token; the short-lived
+// access token is kept in memory. On boot we exchange the stored refresh token
+// for a fresh access token (sent as a Bearer header), so staying signed in no
+// longer depends on third-party cookies.
+//
+// Note: the proper end state is same-site httpOnly cookies (dashboard + API on a
+// shared parent domain via COOKIE_DOMAIN) — then no token needs to be stored at
+// all. That requires a custom domain; *.onrender.com subdomains can't share one.
+const RT_KEY = "avira_rt";
 let memAccessToken = "";
+
+const getRefreshToken = () => {
+  try { return localStorage.getItem(RT_KEY) || ""; } catch { return ""; }
+};
 export const setAccessToken = (t) => { memAccessToken = t || ""; };
-export const clearAccessToken = () => { memAccessToken = ""; };
+export const setSession = (access, refresh) => {
+  if (access !== undefined) memAccessToken = access || "";
+  if (refresh) { try { localStorage.setItem(RT_KEY, refresh); } catch { /* storage off */ } }
+};
+export const clearSession = () => {
+  memAccessToken = "";
+  try { localStorage.removeItem(RT_KEY); } catch { /* noop */ }
+};
+// Back-compat alias
+export const clearAccessToken = clearSession;
 
 // Every request: declare the surface (for the maintenance guard) and attach the
 // in-memory Bearer token when we have one. The cookie rides along automatically.
@@ -32,8 +51,27 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On access-token expiry, refresh using the httpOnly refresh cookie, store the
-// new access token in memory, then retry the original request once.
+// Exchange the stored refresh token for a new access token. The token is sent in
+// the BODY (not just the cookie) so it works when the cookie is blocked on mobile.
+// De-duped so concurrent 401s trigger a single refresh.
+let refreshing = null;
+export const refreshSession = async () => {
+  if (!refreshing) {
+    refreshing = (async () => {
+      const rt = getRefreshToken();
+      const { data } = await axios.post(
+        `${BASE_URL}/auth/refresh`,
+        rt ? { refreshToken: rt } : {},
+        { withCredentials: true },
+      );
+      if (data?.accessToken) setAccessToken(data.accessToken);
+      return data?.accessToken || "";
+    })();
+  }
+  try { return await refreshing; } finally { refreshing = null; }
+};
+
+// On access-token expiry, refresh once and retry the original request.
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -46,19 +84,12 @@ api.interceptors.response.use(
     ) {
       original._retry = true;
       try {
-        const { data } = await axios.post(
-          `${BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
-        if (data?.accessToken) {
-          setAccessToken(data.accessToken);
-          original.headers = original.headers || {};
-          original.headers.Authorization = `Bearer ${data.accessToken}`;
-        }
+        const access = await refreshSession();
+        original.headers = original.headers || {};
+        if (access) original.headers.Authorization = `Bearer ${access}`;
         return api(original);
       } catch {
-        clearAccessToken();
+        clearSession();
         if (typeof window !== "undefined") window.location.href = "#/login";
       }
     }
@@ -72,27 +103,25 @@ export default api;
 export const authAPI = {
   login: async (body) => {
     const res = await api.post("/auth/login", body);
-    if (res.data?.accessToken) setAccessToken(res.data.accessToken); // not set on 2FA challenge
+    if (res.data?.accessToken) setSession(res.data.accessToken, res.data.refreshToken); // not set on 2FA challenge
     return res;
   },
   logout: async () => {
     try {
       return await api.post("/auth/logout");
     } finally {
-      clearAccessToken();
+      clearSession();
     }
   },
   me: () => api.get("/auth/me"),
   changePassword: (body) => api.put("/auth/change-password", body),
   updateProfile: (body) => api.put("/auth/profile", body).then((r) => r.data),
   refresh: async () => {
-    const res = await api.post("/auth/refresh", {});
-    setAccessToken(res.data?.accessToken);
-    return res;
+    await refreshSession();
   },
   verify: async (body) => {
     const res = await api.post("/auth/verify", body);
-    if (res.data?.accessToken) setAccessToken(res.data.accessToken);
+    if (res.data?.accessToken) setSession(res.data.accessToken, res.data.refreshToken);
     return res;
   },
   verifyInfo: (token) => api.get(`/auth/verify/${token}`),
@@ -105,7 +134,7 @@ export const authAPI = {
   // 2FA login completion (challengeToken comes from a 2FA-required login)
   twoFactorVerify: async (challengeToken, code) => {
     const res = await api.post("/auth/2fa/verify", { challengeToken, code });
-    if (res.data?.accessToken) setAccessToken(res.data.accessToken);
+    if (res.data?.accessToken) setSession(res.data.accessToken, res.data.refreshToken);
     return res;
   },
   twoFactorEmailCode: (challengeToken) =>
