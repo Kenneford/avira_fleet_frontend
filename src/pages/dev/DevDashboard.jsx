@@ -5,6 +5,7 @@ import {
   Tab, Tabs, Select, MenuItem, FormControl, InputLabel, Alert,
   LinearProgress, Tooltip, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Avatar, Switch, InputAdornment,
+  Checkbox, FormGroup, FormControlLabel,
 } from "@mui/material";
 import SearchIcon        from "@mui/icons-material/Search";
 import RefreshIcon       from "@mui/icons-material/Refresh";
@@ -24,13 +25,15 @@ import WorkIcon          from "@mui/icons-material/Work";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import MonitorHeartIcon  from "@mui/icons-material/MonitorHeart";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import BuildCircleIcon  from "@mui/icons-material/BuildCircle";
+import PaymentsIcon     from "@mui/icons-material/Payments";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import { useTheme } from "@mui/material/styles";
 import CustomTooltip from "../../components/charts/CustomTooltip";
-import { devAPI, dashboardAPI } from "../../api/client";
+import { devAPI, dashboardAPI, maintenanceAPI } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import { errorMessage, avatarColor } from "../../utils/helpers";
 
@@ -850,7 +853,7 @@ const REGIONS = [
 
 const BLANK_DEV = { name: "", email: "", phone: "", region: "", password: "" };
 
-function DevTeamPanel() {
+export function DevTeamPanel() {
   const [users,    setUsers]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
@@ -1115,7 +1118,7 @@ const ALL_ROLE_CFG = {
   driver:        { label: "Driver",        color: "#4CAF50", bg: "#4CAF5020" },
 };
 
-function UsersRolesPanel() {
+export function UsersRolesPanel() {
   const { user: currentUser } = useAuth();
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1421,9 +1424,156 @@ const TABS = [
   { label: "System Logs", icon: <ArticleIcon       fontSize="small" /> },
   { label: "Jobs",        icon: <WorkIcon          fontSize="small" /> },
   { label: "Incidents",   icon: <ReportProblemIcon fontSize="small" /> },
-  { label: "Dev Team",    icon: <CodeIcon          fontSize="small" /> },
-  { label: "Users & Roles", icon: <ManageAccountsIcon fontSize="small" /> },
 ];
+
+
+// --- System status panel (maintenance + payment notices) ---------------------
+const SURFACE_ORDER = ["website", "fleet", "ride"];
+const SURFACE_LABELS = {
+  website: "Website (public)",
+  fleet: "Fleet dashboard (after login)",
+  ride: "Ride app (after login)",
+};
+
+function SurfaceChecklist({ title, icon, color, targets, saving, onChange, extra }) {
+  const has = (sfc) => targets.includes(sfc);
+  const toggle = (sfc) =>
+    onChange(has(sfc) ? targets.filter((t) => t !== sfc) : [...targets, sfc]);
+  const on = targets.length > 0;
+  return (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+          <Box
+            sx={{
+              width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              bgcolor: on ? "#F4433622" : `${color}22`, color: on ? "#F44336" : color,
+            }}
+          >
+            {icon}
+          </Box>
+          <Box flex={1} minWidth={180}>
+            <Typography variant="body1" fontWeight={700}>{title}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {on ? `Showing on: ${targets.join(", ")}` : "Off — not shown anywhere"}
+            </Typography>
+          </Box>
+          {saving && <CircularProgress size={18} />}
+        </Box>
+        <FormGroup row>
+          {SURFACE_ORDER.map((sfc) => (
+            <FormControlLabel
+              key={sfc}
+              control={<Checkbox size="small" color="error" checked={has(sfc)} onChange={() => toggle(sfc)} disabled={saving} />}
+              label={<Typography variant="body2">{SURFACE_LABELS[sfc]}</Typography>}
+            />
+          ))}
+        </FormGroup>
+        {extra}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function MaintenancePanel() {
+  const [maintTargets, setMaintTargets] = useState([]);
+  const [payTargets, setPayTargets]     = useState([]);
+  const [email, setEmail]   = useState("");
+  const [loading, setLoading] = useState(true);
+  const [savingM, setSavingM] = useState(false);
+  const [savingP, setSavingP] = useState(false);
+  const [err, setErr] = useState("");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    Promise.all([maintenanceAPI.getFlag(), maintenanceAPI.getPayment()])
+      .then(([m, p]) => {
+        setMaintTargets(Array.isArray(m.targets) ? m.targets : []);
+        setPayTargets(Array.isArray(p.targets) ? p.targets : []);
+        setEmail(p.email || "");
+      })
+      .catch((e) => setErr(errorMessage(e)))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const changeMaint = async (next) => {
+    const prev = maintTargets;
+    setMaintTargets(next); setSavingM(true); setErr("");
+    try { const d = await maintenanceAPI.setTargets(next); setMaintTargets(d.targets || []); }
+    catch (e) { setErr(errorMessage(e)); setMaintTargets(prev); }
+    finally { setSavingM(false); }
+  };
+  const changePay = async (next) => {
+    const prev = payTargets;
+    setPayTargets(next); setSavingP(true); setErr("");
+    try { const d = await maintenanceAPI.setPaymentTargets(next); setPayTargets(d.targets || []); }
+    catch (e) { setErr(errorMessage(e)); setPayTargets(prev); }
+    finally { setSavingP(false); }
+  };
+
+  if (loading) {
+    return <Box display="flex" justifyContent="center" p={4}><CircularProgress size={28} /></Box>;
+  }
+
+  const chip = (label, on) => (
+    <Chip
+      icon={<FiberManualRecordIcon sx={{ fontSize: "0.7rem !important", color: on ? "#F44336" : "#4CAF50" }} />}
+      label={label} size="small"
+      sx={{ bgcolor: on ? "#F4433622" : "#4CAF5022", color: on ? "#F44336" : "#4CAF50", border: "1px solid currentColor", fontWeight: 700 }}
+    />
+  );
+
+  return (
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={1}>
+        <Typography variant="h6" fontWeight={700} fontSize="0.95rem">System Status</Typography>
+        <Box display="flex" gap={1} flexWrap="wrap">
+          {chip(maintTargets.length ? `Maintenance: ${maintTargets.join(", ")}` : "Maintenance off", maintTargets.length > 0)}
+          {chip(payTargets.length ? `Payment: ${payTargets.join(", ")}` : "Payment off", payTargets.length > 0)}
+        </Box>
+      </Box>
+
+      {err && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErr("")}>{err}</Alert>}
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Tick the surfaces each notice should appear on. The <b>Website</b> card shows publicly;
+        <b> Fleet</b> and <b>Ride</b> cards show only after a user logs in. You (the developer) never see the cards.
+      </Alert>
+
+      <SurfaceChecklist
+        title="Maintenance notice"
+        icon={<BuildCircleIcon />}
+        color="#9C27B0"
+        targets={maintTargets}
+        saving={savingM}
+        onChange={changeMaint}
+        extra={
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Shows the “we’ll be back” card. On Fleet/Ride it also blocks the API for non-developers.
+          </Typography>
+        }
+      />
+
+      <SurfaceChecklist
+        title="Leverage notice (private)"
+        icon={<PaymentsIcon />}
+        color="#FF9800"
+        targets={payTargets}
+        saving={savingP}
+        onChange={changePay}
+        extra={
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Shows a neutral “Temporarily unavailable” notice on the ticked surfaces — it looks
+            like ordinary downtime and reveals nothing about the reason or your details to users.
+            Informational only — never blocks the API.
+          </Typography>
+        }
+      />
+    </Box>
+  );
+}
 
 export default function DevDashboard() {
   const [tab, setTab]         = useState(0);
@@ -1485,8 +1635,6 @@ export default function DevDashboard() {
       {tab === 5 && <SystemLogsPanel />}
       {tab === 6 && <JobsPanel />}
       {tab === 7 && <IncidentsPanel />}
-      {tab === 8 && <DevTeamPanel />}
-      {tab === 9 && <UsersRolesPanel />}
     </Box>
   );
 }
