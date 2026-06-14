@@ -147,8 +147,11 @@ function RequireAuth({ children, roles }) {
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   // Authenticated but wrong role → bounce to their OWN dashboard, never expose
   // the page. (Hard block on URL bypass.)
-  if (roles && !roles.includes(user.role))
-    return <Navigate to={roleHome(user.role)} replace />;
+  // Multi-role aware: pass if ANY of the user's roles is allowed.
+  const have = user.roles?.length ? user.roles : (user.role ? [user.role] : []);
+  const primary = have[0] || user.role;
+  if (roles && !roles.some((r) => have.includes(r)))
+    return <Navigate to={roleHome(primary)} replace />;
 
   return children;
 }
