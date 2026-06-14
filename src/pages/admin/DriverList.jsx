@@ -27,6 +27,9 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import HistoryIcon from "@mui/icons-material/History";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { driverAPI, analyticsAPI } from "../../api/client";
 import { statusConfig, formatDate, errorMessage } from "../../utils/helpers";
 
@@ -100,32 +103,24 @@ export default function DriverList() {
 
       {/* ── Driver status summary bar ── */}
       {driverSummary && (
-        <Box display="flex" gap={1.5} mb={2.5} flexWrap="wrap">
+        <Box display="flex" gap={1} mb={2.5} flexWrap="wrap" alignItems="center">
           {Object.entries(driverSummary).map(([k, count]) => {
             const cfg = DRIVER_STATUS_COLORS[k] || { bg: "#88888822", color: "#888" };
             const label = statusConfig.driver[k]?.label || k;
+            const active = filters.status === k;
             return (
-              <Box
+              <Chip
                 key={k}
-                sx={{
-                  px: 2,
-                  py: 1,
-                  borderRadius: 2,
-                  bgcolor: cfg.bg,
-                  border: `1px solid ${cfg.color}40`,
-                  cursor: "pointer",
-                  transition: "opacity .15s",
-                  "&:hover": { opacity: 0.8 },
-                }}
+                label={`${label} · ${count}`}
                 onClick={() => setFilters((p) => ({ ...p, status: p.status === k ? "" : k }))}
-              >
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {label}
-                </Typography>
-                <Typography variant="h6" fontWeight={800} sx={{ color: cfg.color, lineHeight: 1.2 }}>
-                  {count}
-                </Typography>
-              </Box>
+                sx={{
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  color: cfg.color,
+                  bgcolor: active ? cfg.bg : "transparent",
+                  border: `1px solid ${cfg.color}66`,
+                }}
+              />
             );
           })}
         </Box>
@@ -135,7 +130,7 @@ export default function DriverList() {
         <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
           <TextField
             size="small"
-            placeholder="Search name, email, license…"
+            placeholder="Search name, email, ID, license…"
             value={filters.search}
             onChange={(e) =>
               setFilters((p) => ({ ...p, search: e.target.value }))
@@ -170,6 +165,17 @@ export default function DriverList() {
           </Typography>
         </Box>
       </Card>
+
+      {drivers.some((d) => d.salesFlagged) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {drivers.filter((d) => d.salesFlagged).length} driver(s) on this page have unsettled daily sales past the deadline. Open a driver's sales to review.
+        </Alert>
+      )}
+      {drivers.some((d) => !d.depositPaid) && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {drivers.filter((d) => !d.depositPaid).length} driver(s) have not paid the refundable deposit — they can't be assigned a vehicle until it's recorded. Open a driver to record it.
+        </Alert>
+      )}
 
       <Card>
         {loading ? (
@@ -226,6 +232,32 @@ export default function DriverList() {
                             >
                               {d?.user?.email}
                             </Typography>
+                            {d?.user?.uniqueId && (
+                              <Typography
+                                variant="caption"
+                                sx={{ display: "block", fontWeight: 700, color: "primary.main", letterSpacing: 0.3 }}
+                              >
+                                {d.user.uniqueId}
+                              </Typography>
+                            )}
+                            {d.salesFlagged && (
+                              <Chip
+                                size="small"
+                                color="error"
+                                icon={<WarningAmberIcon sx={{ fontSize: "0.85rem !important" }} />}
+                                label={`Sales unsettled · ${d.salesArrearsDays}d`}
+                                sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700, mt: 0.5, mr: 0.5 }}
+                              />
+                            )}
+                            {!d.depositPaid && (
+                              <Chip
+                                size="small"
+                                color="warning"
+                                icon={<WarningAmberIcon sx={{ fontSize: "0.85rem !important" }} />}
+                                label="Deposit unpaid"
+                                sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700, mt: 0.5 }}
+                              />
+                            )}
                           </Box>
                         </Box>
                       </TableCell>
@@ -280,6 +312,24 @@ export default function DriverList() {
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
+                        <Tooltip title="Vehicle history">
+                          <IconButton
+                            size="small"
+                            component={Link}
+                            to={`/admin/drivers/${d.id}/history`}
+                          >
+                            <HistoryIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Driver sales">
+                          <IconButton
+                            size="small"
+                            component={Link}
+                            to={`/admin/drivers/${d.id}/sales`}
+                          >
+                            <PaymentsIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         <Tooltip title="Edit driver">
                           <IconButton
                             size="small"

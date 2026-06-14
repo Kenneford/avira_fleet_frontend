@@ -116,6 +116,12 @@ export const authAPI = {
   me: () => api.get("/auth/me"),
   changePassword: (body) => api.put("/auth/change-password", body),
   updateProfile: (body) => api.put("/auth/profile", body).then((r) => r.data),
+  // Upload an image (avatar/doc) to Cloudinary; returns { url, publicId }.
+  uploadImage: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.post("/uploads/document", fd).then((r) => r.data);
+  },
   refresh: async () => {
     await refreshSession();
   },
@@ -155,6 +161,11 @@ export const vehicleAPI = {
   updateStatus: (id, b) => api.patch(`/vehicles/${id}/status`, b),
   assign: (id, b) => api.patch(`/vehicles/${id}/assign`, b),
   retire: (id) => api.delete(`/vehicles/${id}`),
+  driverHistory: (id) => api.get(`/vehicles/${id}/driver-history`).then((r) => r.data),
+  inspections: (id) => api.get(`/vehicles/${id}/inspections`).then((r) => r.data),
+  scheduleInspection: (id, body) => api.patch(`/vehicles/${id}/inspection`, body).then((r) => r.data),
+  completeInspection: (id, body) => api.post(`/vehicles/${id}/inspection/complete`, body).then((r) => r.data),
+  updateInspection: (id, recordId, body) => api.patch(`/vehicles/${id}/inspections/${recordId}`, body).then((r) => r.data),
 };
 
 export const driverAPI = {
@@ -165,6 +176,9 @@ export const driverAPI = {
   getSchedules: (id, p) => api.get(`/drivers/${id}/schedules`, { params: p }),
   createSchedule: (id, b) => api.post(`/drivers/${id}/schedules`, b),
   deleteSchedule: (sid) => api.delete(`/drivers/schedules/${sid}`),
+  markDepositPaid: (id, amount) => api.post(`/drivers/${id}/deposit/pay`, amount != null ? { amount } : {}).then((r) => r.data),
+  refundDeposit: (id) => api.post(`/drivers/${id}/deposit/refund`).then((r) => r.data),
+  vehicleHistory: (id) => api.get(`/drivers/${id}/vehicle-history`).then((r) => r.data),
 };
 
 export const dashboardAPI = {
@@ -203,6 +217,20 @@ export const messagingAPI = {
 
 export const analyticsAPI = {
   fleet: () => api.get("/analytics/fleet"),
+};
+
+export const salesAPI = {
+  // Driver-facing
+  config: () => api.get("/drivers/sales/config").then((r) => r.data),
+  mine: (params) => api.get("/drivers/sales/mine", { params }).then((r) => r.data),
+  init: () => api.post("/drivers/sales/init").then((r) => r.data),
+  initDeposit: () => api.post("/drivers/sales/deposit/init").then((r) => r.data),
+  cancelPending: () => api.post("/drivers/sales/cancel-pending").then((r) => r.data),
+  verify: (reference) => api.post("/drivers/sales/verify", { reference }).then((r) => r.data),
+  // Admin/manager: per-driver analytics
+  driver: (id, params) => api.get(`/drivers/${id}/sales`, { params }).then((r) => r.data),
+  voidSale: (saleId, reason) =>
+    api.post(`/drivers/sales/${saleId}/void`, { reason }).then((r) => r.data),
 };
 
 export const promoAPI = {
@@ -292,4 +320,10 @@ export const galleryAPI = {
       xhr.send(form);
     });
   },
+};
+
+export const auditAPI = {
+  activity: (params) => api.get("/audit/activity", { params }).then((r) => r.data),
+  security: (params) => api.get("/audit/security", { params }).then((r) => r.data),
+  users: () => api.get("/audit/users").then((r) => r.data),
 };

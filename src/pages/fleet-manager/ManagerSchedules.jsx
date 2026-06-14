@@ -41,6 +41,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { driverAPI, vehicleAPI, analyticsAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
 import { formatDate, statusConfig, errorMessage } from "../../utils/helpers";
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -77,6 +79,7 @@ export default function ManagerSchedules() {
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const { paged: pagedSchedules, page: schedPage, setPage: setSchedPage, pageCount: schedPages, total: schedTotal } = usePaged(schedules, 10);
   const [filterDriver, setFilterDriver] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -313,7 +316,7 @@ export default function ManagerSchedules() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {schedules.map((s) => {
+              {pagedSchedules.map((s) => {
                 const st = statusConf[s.status] || {};
                 const driver = s._driverProfile;
                 const isToday =
@@ -427,6 +430,7 @@ export default function ManagerSchedules() {
           </Table>
           </TableContainer>
         )}
+        <TablePager page={schedPage} count={schedPages} onChange={setSchedPage} total={schedTotal} />
       </Card>
 
       {/* ── Create Schedule Dialog ── */}

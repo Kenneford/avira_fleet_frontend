@@ -13,6 +13,33 @@ body {
 ::selection { background: $red; color: $white; }
 a { color: inherit; text-decoration: none; }
 
+/* Global type scale (applies on every role's dashboard, overriding per-page
+   inline sizes): paragraphs, table values, and alerts/info → .8rem.
+   (Chips/flags get .8rem from the MUI theme default; not forced here so the
+   intentionally tiny status badges keep their compact size.) */
+p,
+.MuiTypography-body1,
+.MuiTypography-body2,
+.MuiTableCell-root,
+.MuiAlert-message {
+  font-size: 0.8rem !important;
+}
+
+/* All chips/status badges inside tables render at .8rem. Height is auto so the
+   larger text never clips, regardless of any inline height/fontSize set per chip. */
+.MuiTableCell-root .MuiChip-root {
+  height: auto !important;
+  min-height: 22px;
+}
+.MuiTableCell-root .MuiChip-label {
+  font-size: 0.8rem !important;
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+}
+.MuiTableCell-root .MuiChip-icon {
+  font-size: 0.95rem !important;
+}
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: $dark-2; }
 ::-webkit-scrollbar-thumb { background: $dark-4; border-radius: 3px; }

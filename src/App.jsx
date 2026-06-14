@@ -23,6 +23,8 @@ import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import CodeIcon from "@mui/icons-material/Code";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -47,11 +49,16 @@ const VehicleList = lazy(() => import("./pages/admin/VehicleList"));
 const VehicleForm = lazy(() => import("./pages/admin/VehicleForm"));
 const DriverList = lazy(() => import("./pages/admin/DriverList"));
 const DriverForm = lazy(() => import("./pages/admin/DriverForm"));
+const DriverSalesPage = lazy(() => import("./pages/admin/DriverSalesPage"));
+const VehicleHistoryPage = lazy(() => import("./pages/admin/VehicleHistoryPage"));
+const DriverHistoryPage = lazy(() => import("./pages/admin/DriverHistoryPage"));
 const AlertsPage = lazy(() => import("./pages/admin/AlertsPage"));
 const TeamPage = lazy(() => import("./pages/admin/TeamPage"));
 const ApplicationsPage = lazy(() => import("./pages/admin/ApplicationsPage"));
 const MessagingPage = lazy(() => import("./pages/admin/MessagingPage"));
 const RevenuePage = lazy(() => import("./pages/admin/RevenuePage"));
+const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
+const VehicleInspectionPage = lazy(() => import("./pages/admin/VehicleInspectionPage"));
 const PromotionsPage = lazy(() => import("./pages/admin/PromotionsPage"));
 const GalleryPage = lazy(() => import("./pages/admin/GalleryPage"));
 
@@ -71,18 +78,21 @@ const DevDashboard = lazy(() => import("./pages/dev/DevDashboard"));
 
 // ── Nav configs ──────────────────────────────────────────────────────
 const ADMIN_NAV = [
-  { label: "Dashboard", icon: <DashboardIcon />,      to: "/admin/dashboard"  },
-  { label: "Analytics", icon: <BarChartIcon />,        to: "/admin/analytics"  },
-  { label: "Vehicles",  icon: <DirectionsBusIcon />,   to: "/admin/vehicles"   },
-  { label: "Drivers",   icon: <PeopleIcon />,          to: "/admin/drivers"    },
-  { label: "Alerts",    icon: <WarningAmberIcon />,    to: "/admin/alerts"     },
-  { label: "Revenue",   icon: <AttachMoneyIcon />,     to: "/admin/revenue"    },
-  { label: "Promotions",icon: <LocalOfferIcon />,      to: "/admin/promotions" },
-  { label: "Gallery",   icon: <PhotoLibraryIcon />,    to: "/admin/gallery"    },
+  { label: "Dashboard", icon: <DashboardIcon />, to: "/admin/dashboard" },
+  { label: "Analytics", icon: <BarChartIcon />,  to: "/admin/analytics" },
+  { label: "Fleet", icon: <LocalShippingIcon />, children: [
+    { label: "Vehicles",     icon: <DirectionsBusIcon />,  to: "/admin/vehicles"     },
+    { label: "Drivers",      icon: <PeopleIcon />,         to: "/admin/drivers"      },
+    { label: "Applications", icon: <AssignmentIndIcon />,  to: "/admin/applications" },
+    { label: "Promotions",   icon: <LocalOfferIcon />,     to: "/admin/promotions"   },
+  ] },
+  { label: "Alerts",    icon: <WarningAmberIcon />, to: "/admin/alerts"  },
+  { label: "Revenue",   icon: <AttachMoneyIcon />,  to: "/admin/revenue" },
+  { label: "Gallery",   icon: <PhotoLibraryIcon />, to: "/admin/gallery" },
+  { label: "Messaging", icon: <CampaignIcon />,     to: "/admin/messaging" },
   { label: "divider-team", divider: true },
-  { label: "Team",        icon: <GroupIcon />,          to: "/admin/team"         },
-  { label: "Applications",icon: <AssignmentIndIcon />,  to: "/admin/applications" },
-  { label: "Messaging",   icon: <CampaignIcon />,       to: "/admin/messaging"    },
+  { label: "Team",         icon: <GroupIcon />,     to: "/admin/team"      },
+  { label: "Activity Logs",icon: <FactCheckIcon />, to: "/admin/activity"  },
 ];
 
 const DEV_NAV = [
@@ -95,8 +105,10 @@ const DEV_NAV = [
 const MANAGER_NAV = [
   { label: "Dashboard", icon: <DashboardIcon />, to: "/manager/dashboard" },
   { label: "Analytics", icon: <BarChartIcon />, to: "/manager/analytics" },
-  { label: "Vehicles", icon: <DirectionsBusIcon />, to: "/manager/vehicles" },
-  { label: "Drivers", icon: <PeopleIcon />, to: "/manager/drivers" },
+  { label: "Fleet", icon: <LocalShippingIcon />, children: [
+    { label: "Vehicles", icon: <DirectionsBusIcon />, to: "/manager/vehicles" },
+    { label: "Drivers",  icon: <PeopleIcon />,        to: "/manager/drivers"  },
+  ] },
   { label: "Schedules", icon: <CalendarMonthIcon />, to: "/manager/schedules" },
   { label: "Alerts", icon: <WarningAmberIcon />, to: "/manager/alerts" },
   { label: "Messaging", icon: <CampaignIcon />, to: "/manager/messaging" },
@@ -108,6 +120,14 @@ const DRIVER_NAV = [
 ];
 
 // ── Auth guard ───────────────────────────────────────────────────────
+const ROLE_HOME = {
+  admin: "/admin/dashboard",
+  fleet_manager: "/manager/dashboard",
+  driver: "/driver/dashboard",
+  developer: "/dev/dashboard",
+};
+const roleHome = (role) => ROLE_HOME[role] || "/login";
+
 function RequireAuth({ children, roles }) {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -125,8 +145,10 @@ function RequireAuth({ children, roles }) {
     );
 
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  // Authenticated but wrong role → bounce to their OWN dashboard, never expose
+  // the page. (Hard block on URL bypass.)
   if (roles && !roles.includes(user.role))
-    return <Navigate to="/login" replace />;
+    return <Navigate to={roleHome(user.role)} replace />;
 
   return children;
 }
@@ -206,6 +228,26 @@ export default function App() {
         }
       />
       <Route
+        path="/admin/vehicles/:id/inspections"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <VehicleInspectionPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/vehicles/:id/history"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <VehicleHistoryPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/admin/vehicles/:id"
         element={
           <RequireAuth roles={["admin"]}>
@@ -236,11 +278,41 @@ export default function App() {
         }
       />
       <Route
+        path="/admin/drivers/:id/sales"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <DriverSalesPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/drivers/:id/history"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <DriverHistoryPage />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/admin/drivers/:id"
         element={
           <RequireAuth roles={["admin"]}>
             <AdminLayout>
               <DriverForm />
+            </AdminLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/activity"
+        element={
+          <RequireAuth roles={["admin"]}>
+            <AdminLayout>
+              <ActivityLogsPage />
             </AdminLayout>
           </RequireAuth>
         }
@@ -358,6 +430,26 @@ export default function App() {
         }
       />
       <Route
+        path="/manager/vehicles/:id/inspections"
+        element={
+          <RequireAuth roles={["fleet_manager"]}>
+            <ManagerLayout>
+              <VehicleInspectionPage />
+            </ManagerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/manager/vehicles/:id/history"
+        element={
+          <RequireAuth roles={["fleet_manager"]}>
+            <ManagerLayout>
+              <VehicleHistoryPage />
+            </ManagerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/manager/vehicles/:id"
         element={
           <RequireAuth roles={["fleet_manager"]}>
@@ -383,6 +475,16 @@ export default function App() {
           <RequireAuth roles={["fleet_manager"]}>
             <ManagerLayout>
               <DriverForm />
+            </ManagerLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/manager/drivers/:id/history"
+        element={
+          <RequireAuth roles={["fleet_manager"]}>
+            <ManagerLayout>
+              <DriverHistoryPage />
             </ManagerLayout>
           </RequireAuth>
         }

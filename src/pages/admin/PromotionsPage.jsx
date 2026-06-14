@@ -11,6 +11,8 @@ import EditIcon         from "@mui/icons-material/Edit";
 import DeleteIcon       from "@mui/icons-material/Delete";
 import LocalOfferIcon   from "@mui/icons-material/LocalOffer";
 import { promoAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
 
 const BLANK_PROMO = {
   code: "", description: "", type: "percentage", value: "",
@@ -37,6 +39,7 @@ const clean = (f) => ({
 
 export default function PromotionsPage() {
   const [promos, setPromos]   = useState([]);
+  const { paged: pagedPromos, page: promoPage, setPage: setPromoPage, pageCount: promoPages, total: promoTotal } = usePaged(promos, 10);
   const [flags, setFlags]     = useState({ promotions_enabled: false });
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
@@ -199,7 +202,7 @@ export default function PromotionsPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {promos.map((p) => (
+                {pagedPromos.map((p) => (
                   <TableRow key={p._id} hover>
                     <TableCell>
                       <Typography variant="body2" fontWeight={700} color="primary.main">{p.code}</Typography>
@@ -239,6 +242,7 @@ export default function PromotionsPage() {
             </Table>
           </TableContainer>
         )}
+        <TablePager page={promoPage} count={promoPages} onChange={setPromoPage} total={promoTotal} />
       </Card>
 
       {/* Create / edit dialog */}

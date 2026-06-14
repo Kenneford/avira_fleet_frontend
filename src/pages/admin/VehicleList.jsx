@@ -32,6 +32,8 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
+import HistoryIcon from "@mui/icons-material/History";
+import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { vehicleAPI, analyticsAPI } from "../../api/client";
@@ -152,47 +154,47 @@ export default function VehicleList() {
 
       {/* ── Fleet status summary bar ── */}
       {fleetSummary && (
-        <Box display="flex" gap={1.5} mb={2.5} flexWrap="wrap">
+        <Box display="flex" gap={1} mb={2.5} flexWrap="wrap" alignItems="center">
           {Object.entries(fleetSummary.vehicleStatus)
             .filter(([k]) => k !== "retired" || fleetSummary.vehicleStatus[k] > 0)
             .map(([k, count]) => {
               const cfg = VEHICLE_STATUS_COLORS_BG[k] || { bg: "#88888822", color: "#888" };
               const label = statusConfig.vehicle[k]?.label || k;
+              const active = filters.status === k;
               return (
-                <Box
+                <Chip
                   key={k}
-                  sx={{
-                    px: 2,
-                    py: 1,
-                    borderRadius: 2,
-                    bgcolor: cfg.bg,
-                    border: `1px solid ${cfg.color}40`,
-                    cursor: "pointer",
-                    transition: "opacity .15s",
-                    "&:hover": { opacity: 0.8 },
-                  }}
+                  label={`${label} · ${count}`}
                   onClick={() => setFilters((p) => ({ ...p, status: p.status === k ? "" : k }))}
-                >
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    {label}
-                  </Typography>
-                  <Typography variant="h6" fontWeight={800} sx={{ color: cfg.color, lineHeight: 1.2 }}>
-                    {count}
-                  </Typography>
-                </Box>
+                  sx={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: cfg.color,
+                    bgcolor: active ? cfg.bg : "transparent",
+                    border: `1px solid ${cfg.color}66`,
+                  }}
+                />
               );
             })}
-          <Box sx={{ px: 2, py: 1, borderRadius: 2, bgcolor: "rgba(211,47,47,0.08)", border: "1px solid rgba(211,47,47,0.25)", ml: "auto" }}>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Seat Utilisation
-            </Typography>
-            <Typography variant="h6" fontWeight={800} color="#D32F2F" lineHeight={1.2}>
-              {fleetSummary.capacity.totalCapacity > 0
+          <Chip
+            label={`Seat Utilisation · ${
+              fleetSummary.capacity.totalCapacity > 0
                 ? `${Math.round((fleetSummary.capacity.assignedCapacity / fleetSummary.capacity.totalCapacity) * 100)}%`
-                : "—"}
-            </Typography>
-          </Box>
+                : "—"
+            }`}
+            sx={{ ml: "auto", fontSize: "0.8rem", fontWeight: 700, color: "#D32F2F", bgcolor: "rgba(211,47,47,0.08)", border: "1px solid rgba(211,47,47,0.25)" }}
+          />
         </Box>
+      )}
+
+      {vehicles.some((v) => v.inspection && (v.inspection.state === "overdue" || v.inspection.state === "due_soon")) && (
+        <Alert
+          severity={vehicles.some((v) => v.inspection?.state === "overdue") ? "error" : "warning"}
+          sx={{ mb: 2.5 }}
+        >
+          {vehicles.filter((v) => v.inspection?.state === "overdue").length} vehicle(s) overdue and{" "}
+          {vehicles.filter((v) => v.inspection?.state === "due_soon").length} due within a week for inspection/maintenance. Open a vehicle to record it.
+        </Alert>
       )}
 
       {/* Filters */}
@@ -251,6 +253,7 @@ export default function VehicleList() {
                   <TableCell>Registration</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Cap.</TableCell>
+                  <TableCell>Sales</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Driver</TableCell>
                   <TableCell>Insurance</TableCell>
@@ -296,6 +299,24 @@ export default function VehicleList() {
                         <Typography variant="body2">{v.capacity}</Typography>
                       </TableCell>
                       <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {v.dailySales ? `GHS ${v.dailySales}/day` : "—"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {`GHS ${(v.salesTotal || 0).toLocaleString()} collected`}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {v.inspection && v.inspection.state !== "ok" && v.inspection.state !== "none" && (
+                          <Chip
+                            size="small"
+                            color={v.inspection.state === "overdue" ? "error" : "warning"}
+                            label={v.inspection.state === "overdue"
+                              ? `Inspection overdue ${Math.abs(v.inspection.daysLeft)}d`
+                              : `Inspection ${v.inspection.daysLeft}d`}
+                            sx={{ display: "block", mb: 0.5, width: "fit-content", border: "none" }}
+                          />
+                        )}
                         <Chip
                           label={st.label || v.status}
                           color={st.color || "default"}
@@ -329,6 +350,24 @@ export default function VehicleList() {
                       </TableCell>
                       <TableCell align="center">
                         <Box display="flex" gap={0.5} justifyContent="center">
+                          <Tooltip title="Inspection & maintenance">
+                            <IconButton
+                              size="small"
+                              component={Link}
+                              to={`${base}/vehicles/${v.id}/inspections`}
+                            >
+                              <BuildCircleIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Driver history">
+                            <IconButton
+                              size="small"
+                              component={Link}
+                              to={`${base}/vehicles/${v.id}/history`}
+                            >
+                              <HistoryIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Edit vehicle">
                             <IconButton
                               size="small"
@@ -376,7 +415,7 @@ export default function VehicleList() {
                 {!vehicles.length && (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       align="center"
                       sx={{ py: 5, color: "text.secondary" }}
                     >

@@ -30,6 +30,9 @@ import {
 } from "recharts";
 import CustomTooltip from "../../components/charts/CustomTooltip";
 import { authAPI, driverAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
+import DriverSalesCard from "../../components/driver/DriverSalesCard";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   formatDate,
@@ -50,10 +53,9 @@ export default function DriverDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [schedules, setSchedules] = useState([]);
+  const { paged: pagedSchedules, page: schPage, setPage: setSchPage, pageCount: schPages, total: schTotal } = usePaged(schedules, 10);
   const [loading, setLoading] = useState(true);
 
-  console.log("profile: ", profile);
-  console.log("schedules: ", schedules);
 
   useEffect(() => {
     authAPI
@@ -73,6 +75,15 @@ export default function DriverDashboard() {
   const licDays = profile
     ? Math.round((new Date(profile.licenseExpiry) - new Date()) / 86400000)
     : null;
+
+  // Assigned-vehicle inspection/maintenance reminder (a week before, + overdue).
+  const inspDue = profile?.assignedVehicle?.nextInspectionDue || null;
+  const inspDays = inspDue
+    ? Math.round((new Date(inspDue) - new Date()) / 86400000)
+    : null;
+  const inspDateStr = inspDue
+    ? new Date(inspDue).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
+    : "";
 
   // Schedule status breakdown for mini chart
   const scheduleStats = schedules.reduce((acc, s) => {
@@ -111,9 +122,14 @@ export default function DriverDashboard() {
           <Typography variant="overline" display="block">
             Driver Portal
           </Typography>
-          <Typography variant="h4" fontWeight={800}>
+          <Typography variant="h5" fontWeight={800}>
             Good day, {user?.name?.split(" ")[0]}
           </Typography>
+          {user?.uniqueId && (
+            <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main", letterSpacing: 0.3 }}>
+              ID: {user.uniqueId}
+            </Typography>
+          )}
         </Box>
       </Box>
 
@@ -127,6 +143,16 @@ export default function DriverDashboard() {
             : `⚠️ Your driver's license expires in ${licDays} day${licDays !== 1 ? "s" : ""} — please renew soon.`}
         </Alert>
       )}
+
+      {inspDays !== null && inspDays <= 7 && (
+        <Alert severity={inspDays < 0 ? "error" : "warning"} sx={{ mb: 2.5 }}>
+          {inspDays < 0
+            ? `🔧 Vehicle inspection/maintenance is OVERDUE by ${Math.abs(inspDays)} day${Math.abs(inspDays) !== 1 ? "s" : ""} (was due ${inspDateStr}). Please contact your fleet manager.`
+            : `🔧 Vehicle inspection/maintenance due in ${inspDays} day${inspDays !== 1 ? "s" : ""} (${inspDateStr}). Please arrange it with your fleet manager.`}
+        </Alert>
+      )}
+
+      <DriverSalesCard />
 
       <Grid container spacing={2.5} mb={3}>
         {/* My Vehicle */}
@@ -142,7 +168,7 @@ export default function DriverDashboard() {
               {profile?.assignedVehicle ? (
                 <>
                   <Typography
-                    variant="h4"
+                    variant="h6"
                     fontWeight={800}
                     color="primary.main"
                     mb={0.5}
@@ -299,7 +325,7 @@ export default function DriverDashboard() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {schedules?.map((s) => {
+            {pagedSchedules.map((s) => {
               const st = statusConfig.schedule[s.status] || {};
               return (
                 <TableRow key={s._id} hover>
@@ -351,6 +377,7 @@ export default function DriverDashboard() {
           </TableBody>
         </Table>
         </TableContainer>
+        <TablePager page={schPage} count={schPages} onChange={setSchPage} total={schTotal} />
       </Card>
     </Box>
   );

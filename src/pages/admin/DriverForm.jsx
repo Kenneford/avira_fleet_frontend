@@ -9,6 +9,7 @@ import {
   TextField,
   MenuItem,
   Button,
+  Chip,
   Alert,
   CircularProgress,
   Checkbox,
@@ -108,6 +109,8 @@ export default function DriverForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [deposit, setDeposit] = useState({ paid: false, refunded: false, amount: 0 });
+  const [depBusy, setDepBusy] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -160,6 +163,24 @@ export default function DriverForm() {
       .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false));
   }, [id, isEdit]);
+
+  const payDeposit = async () => {
+    setDepBusy(true); setError(""); setSuccess("");
+    try {
+      await driverAPI.markDepositPaid(id, Number(form.deposit) || undefined);
+      setDeposit((d) => ({ ...d, paid: true, refunded: false, amount: Number(form.deposit) || d.amount }));
+      setSuccess("Deposit recorded as paid (booked to revenue).");
+    } catch (e) { setError(errorMessage(e)); } finally { setDepBusy(false); }
+  };
+
+  const refundDep = async () => {
+    setDepBusy(true); setError(""); setSuccess("");
+    try {
+      await driverAPI.refundDeposit(id);
+      setDeposit((d) => ({ ...d, refunded: true }));
+      setSuccess("Deposit refund recorded (booked as expense).");
+    } catch (e) { setError(errorMessage(e)); } finally { setDepBusy(false); }
+  };
 
   const set = (field) => (e) =>
     setForm((p) => ({ ...p, [field]: e.target.value }));
@@ -461,7 +482,7 @@ export default function DriverForm() {
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                label="Daily Sales"
+                label="Daily Sales override (optional)"
                 type="number"
                 value={form.dailySales}
                 onChange={set("dailySales")}
@@ -486,6 +507,31 @@ export default function DriverForm() {
                 }}
               />
             </Grid>
+            {isEdit && (
+              <Grid item xs={12}>
+                <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap"
+                  sx={{ p: 1.5, borderRadius: 1, bgcolor: deposit.paid ? "rgba(56,142,60,0.08)" : "rgba(245,124,0,0.10)", border: "1px solid", borderColor: deposit.paid ? "rgba(56,142,60,0.3)" : "rgba(245,124,0,0.3)" }}>
+                  <Chip size="small" color={deposit.paid ? "success" : "warning"}
+                    label={deposit.refunded ? "Deposit refunded" : deposit.paid ? "Deposit paid" : "Deposit unpaid"} />
+                  <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 180 }}>
+                    {deposit.paid
+                      ? (deposit.refunded ? "The refundable deposit has been refunded." : "Deposit received — this driver can be assigned a vehicle.")
+                      : "Deposit not received — this driver cannot be assigned a vehicle until it's recorded."}
+                  </Typography>
+                  {!deposit.paid && (
+                    <Button size="small" variant="contained" color="success" onClick={payDeposit} disabled={depBusy}
+                      startIcon={depBusy ? <CircularProgress size={14} color="inherit" /> : null}>
+                      Mark deposit paid
+                    </Button>
+                  )}
+                  {deposit.paid && !deposit.refunded && (
+                    <Button size="small" variant="outlined" color="error" onClick={refundDep} disabled={depBusy}>
+                      Record refund
+                    </Button>
+                  )}
+                </Box>
+              </Grid>
+            )}
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
