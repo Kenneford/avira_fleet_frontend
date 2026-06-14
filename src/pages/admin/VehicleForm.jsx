@@ -36,6 +36,7 @@ const BLANK = {
   year: new Date().getFullYear(),
   vehicleType: "",
   capacity: "",
+  dailySales: "",
   color: "",
   chassisNumber: "",
   engineNumber: "",
@@ -74,6 +75,7 @@ export default function VehicleForm() {
           year: d.year || "",
           vehicleType: d.vehicleType || "",
           capacity: d.capacity || "",
+          dailySales: d.dailySales ?? "",
           color: d.color || "",
           chassisNumber: d.chassisNumber || "",
           engineNumber: d.engineNumber || "",
@@ -233,6 +235,17 @@ export default function VehicleForm() {
               <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
+                  label="Daily Sales (GHS)"
+                  type="number"
+                  value={form.dailySales}
+                  onChange={set("dailySales")}
+                  inputProps={{ min: 0 }}
+                  helperText="Amount the driver of this car must remit daily"
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth
                   select
                   label="Fuel Type"
                   value={form.fuelType}
@@ -365,6 +378,8 @@ export default function VehicleForm() {
           </Button>
         </Box>
       </Box>
+
+
     </Box>
   );
 }

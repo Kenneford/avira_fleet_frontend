@@ -17,6 +17,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { dashboardAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
 import { useAuth } from "../../contexts/AuthContext";
 import { errorMessage, avatarColor } from "../../utils/helpers";
 
@@ -129,6 +131,7 @@ export default function TeamPage() {
     const matchesSearch = !q
       || u.name?.toLowerCase().includes(q)
       || u.email?.toLowerCase().includes(q)
+      || (u.uniqueId || "").toLowerCase().includes(q)
       || (u.phone  || "").toLowerCase().includes(q)
       || (u.region || "").toLowerCase().includes(q);
     const matchesRole   = roleFilter === "all" || u.role === roleFilter;
@@ -136,6 +139,7 @@ export default function TeamPage() {
       || (statusFilter === "active" ? u.isActive : !u.isActive);
     return matchesSearch && matchesRole && matchesStatus;
   });
+  const { paged: pagedMembers, page: memPage, setPage: setMemPage, pageCount: memPages, total: memTotal } = usePaged(visibleMembers, 10, [search, roleFilter, statusFilter]);
   const filtersActive = search.trim() || roleFilter !== "all" || statusFilter !== "all";
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -411,7 +415,7 @@ export default function TeamPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {visibleMembers.map(u => {
+                {pagedMembers.map(u => {
                   const rc   = ROLE_CFG[u.role] || ROLE_CFG.driver;
                   const isSelf = u._id === currentUser?.id;
                   const age  = calcAge(u.dateOfBirth);
@@ -428,6 +432,11 @@ export default function TeamPage() {
                               {isSelf && <Chip label="You" size="small" sx={{ height: 16, fontSize: "0.6rem", ml: 0.5 }} />}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">{u.email}</Typography>
+                            {u.uniqueId && (
+                              <Typography variant="caption" sx={{ display: "block", fontWeight: 700, color: "primary.main", letterSpacing: 0.3 }}>
+                                {u.uniqueId}
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
                       </TableCell>
@@ -504,6 +513,7 @@ export default function TeamPage() {
             </Table>
           </TableContainer>
         )}
+        <TablePager page={memPage} count={memPages} onChange={setMemPage} total={memTotal} />
       </Card>
 
       {/* ── Add Dialog ─────────────────────────────────────────────────────── */}

@@ -60,22 +60,23 @@ export function createFleetTheme(mode = "light") {
     },
 
     typography: {
-      fontFamily: "'DM Sans', sans-serif",
-      h1: { fontFamily: "'Syne', sans-serif", fontWeight: 800 },
-      h2: { fontFamily: "'Syne', sans-serif", fontWeight: 800 },
-      h3: { fontFamily: "'Syne', sans-serif", fontWeight: 700 },
-      h4: { fontFamily: "'Syne', sans-serif", fontWeight: 700 },
-      h5: { fontFamily: "'Syne', sans-serif", fontWeight: 700 },
-      h6: { fontFamily: "'Syne', sans-serif", fontWeight: 700 },
+      fontFamily: "'Roboto', sans-serif",
+      h1: { fontFamily: "'Poppins', sans-serif", fontWeight: 800 },
+      h2: { fontFamily: "'Poppins', sans-serif", fontWeight: 800 },
+      h3: { fontFamily: "'Poppins', sans-serif", fontWeight: 700 },
+      h4: { fontFamily: "'Poppins', sans-serif", fontWeight: 700 },
+      h5: { fontFamily: "'Poppins', sans-serif", fontWeight: 700 },
+      h6: { fontFamily: "'Poppins', sans-serif", fontWeight: 700 },
       overline: {
-        fontFamily: "'Syne', sans-serif",
+        fontFamily: "'Poppins', sans-serif",
         fontWeight: 700,
         letterSpacing: "0.15em",
         fontSize: "0.68rem",
         color: red,
       },
       caption: { color: T.textSec },
-      body2: { color: isDark ? "#CCCCCC" : "#333333", lineHeight: 1.6 },
+      body1: { fontSize: "0.8rem", lineHeight: 1.6 },
+      body2: { color: isDark ? "#CCCCCC" : "#333333", lineHeight: 1.6, fontSize: "0.8rem" },
     },
 
     shape: { borderRadius: 6 },
@@ -96,13 +97,13 @@ export function createFleetTheme(mode = "light") {
       MuiButton: {
         styleOverrides: {
           root: {
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 700,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             borderRadius: 4,
             boxShadow: "none",
-            fontSize: "0.78rem",
+            fontSize: "0.8rem",
             "&:hover": { boxShadow: "none" },
           },
           containedPrimary: {
@@ -170,7 +171,7 @@ export function createFleetTheme(mode = "light") {
           root: {
             "& .MuiTableCell-root": {
               background: T.surface2,
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "0.72rem",
               letterSpacing: "0.1em",
@@ -186,7 +187,7 @@ export function createFleetTheme(mode = "light") {
         styleOverrides: {
           root: {
             borderBottom: `1px solid ${T.border}`,
-            fontSize: "0.875rem",
+            fontSize: "0.8rem",
             padding: "12px 16px",
             color: T.textPri,
           },
@@ -234,11 +235,11 @@ export function createFleetTheme(mode = "light") {
       MuiChip: {
         styleOverrides: {
           root: {
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 700,
-            fontSize: "0.68rem",
-            letterSpacing: "0.06em",
-            height: 24,
+            fontSize: "0.8rem",
+            letterSpacing: "0.04em",
+            height: 26,
             borderRadius: 4,
           },
         },
@@ -274,6 +275,7 @@ export function createFleetTheme(mode = "light") {
       MuiAlert: {
         styleOverrides: {
           root: { borderRadius: 6 },
+          message: { fontSize: "0.8rem" },
           standardWarning: {
             background: alpha("#F57C00", 0.1),
             border: `1px solid ${alpha("#F57C00", 0.3)}`,
@@ -371,7 +373,7 @@ export function createFleetTheme(mode = "light") {
       MuiTab: {
         styleOverrides: {
           root: {
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 700,
             letterSpacing: "0.04em",
             textTransform: "none",

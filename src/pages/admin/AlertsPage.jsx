@@ -30,6 +30,8 @@ import {
   Cell,
 } from "recharts";
 import { dashboardAPI, analyticsAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
 import { formatDate, errorMessage } from "../../utils/helpers";
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -75,6 +77,7 @@ export default function AlertsPage() {
   const critical = alerts.filter((a) => a.severity === "critical");
   const warnings = alerts.filter((a) => a.severity === "warning");
   const displayed = tab === 0 ? alerts : tab === 1 ? critical : warnings;
+  const { paged: pagedAlerts, page: alertPage, setPage: setAlertPage, pageCount: alertPages, total: alertTotal } = usePaged(displayed, 10, [tab]);
 
   return (
     <Box>
@@ -198,7 +201,7 @@ export default function AlertsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayed.map((a, i) => (
+              {pagedAlerts.map((a, i) => (
                 <TableRow key={i} hover>
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
@@ -272,6 +275,7 @@ export default function AlertsPage() {
           </Table>
           </TableContainer>
         )}
+        <TablePager page={alertPage} count={alertPages} onChange={setAlertPage} total={alertTotal} />
       </Card>
     </Box>
   );

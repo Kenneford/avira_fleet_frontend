@@ -13,6 +13,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ReplayIcon from "@mui/icons-material/Replay";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import { messagingAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
 import { errorMessage } from "../../utils/helpers";
 
 const AUDIENCES = [
@@ -83,6 +85,7 @@ export default function MessagingPage() {
 
   // campaigns
   const [campaigns, setCampaigns] = useState([]);
+  const { paged: pagedCampaigns, page: campPage, setPage: setCampPage, pageCount: campPages, total: campTotal } = usePaged(campaigns, 10);
   const [loadingC, setLoadingC] = useState(false);
   const [viewCampaign, setViewCampaign] = useState(null);   // preview modal
   const [deleteTarget, setDeleteTarget] = useState(null);   // delete confirm
@@ -440,7 +443,7 @@ export default function MessagingPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {campaigns.map((c) => {
+                  {pagedCampaigns.map((c) => {
                     const sc = STATUS_CFG[c.status] || STATUS_CFG.scheduled;
                     return (
                       <TableRow key={c._id} hover>
@@ -488,6 +491,7 @@ export default function MessagingPage() {
               </Table>
             </TableContainer>
           )}
+          <TablePager page={campPage} count={campPages} onChange={setCampPage} total={campTotal} />
         </Card>
       )}
 

@@ -8,6 +8,8 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import BadgeIcon from "@mui/icons-material/Badge";
 import { applicationsAPI } from "../../api/client";
+import { usePaged } from "../../hooks/usePaged";
+import TablePager from "../../components/common/TablePager";
 import { errorMessage, avatarColor } from "../../utils/helpers";
 
 const STATUS_CFG = {
@@ -67,6 +69,7 @@ export default function ApplicationsPage() {
     const matchesStatus = statusFilter === "all" || a.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+  const { paged: pagedApps, page: appPage, setPage: setAppPage, pageCount: appPages, total: appTotal } = usePaged(visible, 10, [search, statusFilter]);
   const filtersActive = search.trim() || statusFilter !== "all";
 
   const openDetail = (a) => { setDetail(a); setNewStatus(a.status); setNote(a.reviewNote || ""); };
@@ -150,7 +153,7 @@ export default function ApplicationsPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {visible.map((a) => {
+                {pagedApps.map((a) => {
                   const sc = STATUS_CFG[a.status] || STATUS_CFG.pending;
                   return (
                     <TableRow key={a._id} hover>
@@ -176,6 +179,14 @@ export default function ApplicationsPage() {
                       </TableCell>
                       <TableCell>
                         <Chip label={sc.label} size="small" sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 600 }} />
+                        {a.status === "approved" && a.deposit?.hasDriver && !a.deposit?.paid && (
+                          <Chip label="Deposit unpaid" size="small" color="warning"
+                            sx={{ ml: 0.5, mt: 0.5, height: 18, fontSize: "0.62rem", fontWeight: 700 }} />
+                        )}
+                        {a.status === "approved" && a.deposit?.paid && !a.deposit?.refunded && (
+                          <Chip label="Deposit paid" size="small" color="success" variant="outlined"
+                            sx={{ ml: 0.5, mt: 0.5, height: 18, fontSize: "0.62rem", fontWeight: 700 }} />
+                        )}
                       </TableCell>
                       <TableCell><Typography variant="caption" color="text.secondary">{fmtDate(a.submittedAt || a.createdAt)}</Typography></TableCell>
                       <TableCell align="center">
@@ -195,6 +206,7 @@ export default function ApplicationsPage() {
             </Table>
           </TableContainer>
         )}
+        <TablePager page={appPage} count={appPages} onChange={setAppPage} total={appTotal} />
       </Card>
 
       {/* Review dialog */}

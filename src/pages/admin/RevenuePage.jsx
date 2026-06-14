@@ -68,8 +68,20 @@ const TYPE_OPTIONS = [
   { value: "custom", label: "Custom", dir: null },
 ];
 
+// System-booked types — generated automatically (driver settlements, application
+// fees, deposits). Shown in filters / labels / chips, but NOT offered in the
+// manual "add transaction" form since the system creates them.
+const SYSTEM_TYPES = [
+  { value: "daily_sales", label: "Daily Sales", dir: "income" },
+  { value: "application_fee", label: "Application Fee", dir: "income" },
+  { value: "deposit", label: "Deposit (held)", dir: "income" },
+  { value: "deposit_refund", label: "Deposit Refund", dir: "expense" },
+];
+
+const ALL_TYPES = [...TYPE_OPTIONS, ...SYSTEM_TYPES];
+
 const TYPE_LABELS = Object.fromEntries(
-  TYPE_OPTIONS.map((t) => [t.value, t.label]),
+  ALL_TYPES.map((t) => [t.value, t.label]),
 );
 
 const PIE_GREEN = ["#4CAF50", "#2E7D32", "#66BB6A", "#1B5E20", "#81C784", "#388E3C"];
@@ -102,7 +114,7 @@ const fmtShort = (n) => {
 };
 
 const getDirection = (type) =>
-  TYPE_OPTIONS.find((t) => t.value === type)?.dir || null;
+  ALL_TYPES.find((t) => t.value === type)?.dir || null;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -188,6 +200,10 @@ function TypeChip({ type }) {
     maintenance: { bg: "#E65100  22", text: "#E65100" },
     fuel: { bg: "#6A1B9A22", text: "#6A1B9A" },
     custom: { bg: "#37474F22", text: "#37474F" },
+    daily_sales: { bg: "#00838F22", text: "#00838F" },
+    application_fee: { bg: "#558B2F22", text: "#558B2F" },
+    deposit: { bg: "#5E35B122", text: "#5E35B1" },
+    deposit_refund: { bg: "#C6280022", text: "#C62800" },
   };
   const c = colors[type] || colors.custom;
   return (
@@ -874,7 +890,7 @@ export default function RevenuePage() {
                       onChange={(e) => setFilterType(e.target.value)}
                     >
                       <MenuItem value="">All</MenuItem>
-                      {TYPE_OPTIONS.map((t) => (
+                      {ALL_TYPES.map((t) => (
                         <MenuItem key={t.value} value={t.value}>
                           {t.label}
                         </MenuItem>
@@ -1021,27 +1037,37 @@ export default function RevenuePage() {
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              setTxDialog({ open: true, entry: tx })
-                            }
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
-                              setDeleteDialog({ open: true, entry: tx })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {(() => {
+                          const sys = SYSTEM_TYPES.some((t) => t.value === tx.type);
+                          const sysMsg = "Automated entry — edit/delete is disabled. Void it from the driver's sales page instead.";
+                          return (
+                            <>
+                              <Tooltip title={sys ? sysMsg : "Edit"}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    disabled={sys}
+                                    onClick={() => setTxDialog({ open: true, entry: tx })}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title={sys ? sysMsg : "Delete"}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    disabled={sys}
+                                    onClick={() => setDeleteDialog({ open: true, entry: tx })}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))

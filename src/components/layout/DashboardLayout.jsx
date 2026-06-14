@@ -4,6 +4,7 @@ import {
   Box,
   Drawer,
   List,
+  Collapse,
   ListItem,
   ListItemButton,
   ListItemIcon,
@@ -45,6 +46,8 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useAuth } from "../../contexts/AuthContext";
 import { useThemeMode } from "../../contexts/ThemeContext";
 import { dashboardAPI, authAPI } from "../../api/client";
@@ -91,6 +94,7 @@ export default function DashboardLayout({ navItems, children }) {
   const isDark = mode === "dark";
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
   const [bellAnchor, setBellAnchor] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -215,15 +219,16 @@ export default function DashboardLayout({ navItems, children }) {
         className={styles.drawerLogo}
         sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
       >
-        <Box
-          component="span"
-          className={styles.logoIcon}
-          sx={{ color: "primary.main" }}
-        >
-          ▲
+        <Box className={styles.logoBadge}>
+          <Box
+            component="img"
+            src="/assets/logo/avira_logo_new.png"
+            alt="Avira Life Transport"
+            className={styles.logoImg}
+          />
         </Box>
         <Box className={styles.logoText} sx={{ color: "text.primary" }}>
-          AVIRA
+          AVIRA LIFE
           <Box
             component="span"
             className={styles.logoSub}
@@ -258,35 +263,67 @@ export default function DashboardLayout({ navItems, children }) {
         </Box>
       </Box>
 
-      {/* Nav items */}
-      <List sx={{ px: 1, pt: 0.5, flex: 1 }}>
-        {navItems.map(({ label, icon, to, divider }) =>
-          divider ? (
-            <Divider key={label} sx={{ my: 1 }} />
-          ) : (
-            <ListItem key={to} disablePadding>
+      {/* Nav items — scrolls when the list grows beyond the available height */}
+      <List sx={{ px: 1, pt: 0.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
+        {navItems.map((item) => {
+          const isActive = (to) => location.pathname === to || location.pathname.startsWith(to + "/");
+          if (item.divider) return <Divider key={item.label} sx={{ my: 1 }} />;
+
+          // Collapsible group with sub-links.
+          if (item.children) {
+            const groupActive = item.children.some((c) => isActive(c.to));
+            const open = openGroups[item.label] ?? groupActive;
+            return (
+              <Box key={item.label}>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => setOpenGroups((g) => ({ ...g, [item.label]: !open }))}
+                    selected={groupActive && !open}
+                    sx={{ py: 1 }}
+                  >
+                    <ListItemIcon sx={{ "& .MuiSvgIcon-root": { fontSize: "1.3rem" } }}>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 600 }} />
+                    {open ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                  <List disablePadding>
+                    {item.children.map((c) => (
+                      <ListItem key={c.to} disablePadding>
+                        <ListItemButton
+                          component={Link}
+                          to={c.to}
+                          selected={isActive(c.to)}
+                          onClick={() => isMobile && setMobileOpen(false)}
+                          sx={{ py: 0.75, pl: 4 }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 34, "& .MuiSvgIcon-root": { fontSize: "1.15rem" } }}>{c.icon}</ListItemIcon>
+                          <ListItemText primary={c.label} primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 500 }} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </Box>
+            );
+          }
+
+          // Plain link.
+          return (
+            <ListItem key={item.to} disablePadding>
               <ListItemButton
                 component={Link}
-                to={to}
-                selected={
-                  location.pathname === to ||
-                  location.pathname.startsWith(to + "/")
-                }
+                to={item.to}
+                selected={isActive(item.to)}
                 onClick={() => isMobile && setMobileOpen(false)}
                 sx={{ py: 1 }}
               >
-                <ListItemIcon>{icon}</ListItemIcon>
-                <ListItemText
-                  primary={label}
-                  primaryTypographyProps={{
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                  }}
-                />
+                <ListItemIcon sx={{ "& .MuiSvgIcon-root": { fontSize: "1.3rem" } }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 500 }} />
               </ListItemButton>
             </ListItem>
-          ),
-        )}
+          );
+        })}
       </List>
 
       {/* Footer user info */}
