@@ -116,7 +116,8 @@ export default function DashboardLayout({ navItems, children }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [canGoBack, navigate]);
 
-  const canSeeAlerts = user?.role === "admin" || user?.role === "fleet_manager";
+  const myRoles = user?.roles?.length ? user.roles : (user?.role ? [user.role] : []);
+  const canSeeAlerts = myRoles.includes("admin") || myRoles.includes("fleet_manager");
 
   const fetchAlerts = useCallback(() => {
     if (!canSeeAlerts) return;
@@ -259,7 +260,7 @@ export default function DashboardLayout({ navItems, children }) {
             border: (t) => `1px solid ${t.palette.primary.main}33`,
           }}
         >
-          {user?.role?.replace("_", " ").toUpperCase()}
+          {(myRoles.length ? myRoles : [user?.role]).filter(Boolean).map((r) => r.replace("_", " ").toUpperCase()).join(" · ")}
         </Box>
       </Box>
 

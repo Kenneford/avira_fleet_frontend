@@ -68,7 +68,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function TeamPage() {
   const { user: currentUser } = useAuth();
   // Developers manage the whole system and get the technical role-override.
-  const isDeveloper = currentUser?.role === "developer";
+  const isDeveloper = (currentUser?.roles?.length ? currentUser.roles : [currentUser?.role]).includes("developer");
 
   const [users,       setUsers]       = useState([]);
   const [analytics,   setAnalytics]   = useState(null);
@@ -90,7 +90,7 @@ export default function TeamPage() {
 
   // Role dialog
   const [roleDlg,    setRoleDlg]    = useState(null);   // user
-  const [newRole,    setNewRole]     = useState("");
+  const [newRoles,   setNewRoles]    = useState([]);
   const [roleSaving, setRoleSaving] = useState(false);
 
   // Delete dialog
@@ -170,20 +170,21 @@ export default function TeamPage() {
   };
 
   const handleRoleSave = async () => {
-    if (!newRole) return;
+    if (!newRoles.length) return;
     setRoleSaving(true);
     try {
       // Developers use the technical override (any role, any user);
       // admins use the standard role endpoint (admin / fleet_manager only).
       const res = isDeveloper
-        ? await dashboardAPI.devUpdateUserRole(roleDlg._id, { role: newRole })
-        : await dashboardAPI.updateUserRole(roleDlg._id, { role: newRole });
-      setRoleDlg(null); setNewRole("");
-      setToast(res?.data?.note || "Role updated.");
+        ? await dashboardAPI.devUpdateUserRole(roleDlg._id, { roles: newRoles })
+        : await dashboardAPI.updateUserRole(roleDlg._id, { roles: newRoles });
+      setRoleDlg(null); setNewRoles([]);
+      setToast(res?.data?.note || "Roles updated.");
       loadAll();
     } catch (e) { setError(errorMessage(e)); }
     finally { setRoleSaving(false); }
   };
+  const rolesArr = (u) => (u?.roles?.length ? u.roles : (u?.role ? [u.role] : []));
 
   const resetPassword = async (u) => {
     try {
@@ -441,7 +442,12 @@ export default function TeamPage() {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Chip label={rc.label} size="small" sx={{ bgcolor: rc.bg, color: rc.color, fontWeight: 600 }} />
+                        <Box display="flex" gap={0.5} flexWrap="wrap">
+                          {rolesArr(u).map((rid) => {
+                            const c = ROLE_CFG[rid] || ROLE_CFG.driver;
+                            return <Chip key={rid} label={c.label} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 600 }} />;
+                          })}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">{u.region || "—"}</Typography>
@@ -477,7 +483,7 @@ export default function TeamPage() {
                           </Tooltip>
                           {!isSelf && (
                             <Tooltip title={isDeveloper ? "Override role (technical)" : "Change role"}>
-                              <IconButton size="small" onClick={() => { setRoleDlg(u); setNewRole(u.role); }}
+                              <IconButton size="small" onClick={() => { setRoleDlg(u); setNewRoles(rolesArr(u)); }}
                                 sx={{ color: isDeveloper ? "warning.main" : "text.secondary" }}>
                                 <Typography variant="caption" fontWeight={700} sx={{ fontSize: "0.6rem", letterSpacing: 0 }}>
                                   ROLE
@@ -605,22 +611,31 @@ export default function TeamPage() {
           )}
           <Box pt={1}>
             <FormControl fullWidth size="small">
-              <InputLabel>New Role</InputLabel>
-              <Select label="New Role" value={newRole} onChange={e => setNewRole(e.target.value)}>
+              <InputLabel>Roles</InputLabel>
+              <Select
+                multiple
+                label="Roles"
+                value={newRoles}
+                onChange={(e) => setNewRoles(typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value)}
+                renderValue={(sel) => sel.map((r) => ROLE_CFG[r]?.label || r).join(", ")}
+              >
                 <MenuItem value="admin">Admin</MenuItem>
                 <MenuItem value="fleet_manager">Fleet Manager</MenuItem>
                 {isDeveloper && <MenuItem value="driver">Driver</MenuItem>}
                 {isDeveloper && <MenuItem value="developer">Developer</MenuItem>}
               </Select>
             </FormControl>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+              Select one or more roles. The first becomes the primary role.
+            </Typography>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRoleDlg(null)} disabled={roleSaving}>Cancel</Button>
           <Button variant="contained" color={isDeveloper ? "warning" : "primary"} onClick={handleRoleSave}
-            disabled={roleSaving || newRole === roleDlg?.role}
+            disabled={roleSaving || !newRoles.length}
             startIcon={roleSaving ? <CircularProgress size={14} color="inherit" /> : null}>
-            {roleSaving ? "Saving…" : isDeveloper ? "Override Role" : "Update Role"}
+            {roleSaving ? "Saving…" : isDeveloper ? "Override Roles" : "Update Roles"}
           </Button>
         </DialogActions>
       </Dialog>
